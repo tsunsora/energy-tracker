@@ -4,7 +4,7 @@ async function done(page: Page) { await page.getByRole('button', { name: 'Done',
 
 test('visible number glyphs stay centered on phone and tablet screens', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('vanguard-energy-v1', JSON.stringify({ board: {
+    sessionStorage.setItem('vanguard-session-v1', JSON.stringify({ board: {
       count: 4,
       players: ['#c9f76f', '#b6a0ff', '#ffac87', '#81dce5'].map((color, id) => ({
         id, name: `Player ${id + 1}`, color, energy: [0, 1, 10, 9999][id], allowAbove10: true
@@ -12,6 +12,7 @@ test('visible number glyphs stay centered on phone and tablet screens', async ({
     }, past: [] }));
   });
   await page.goto('/');
+  await expect(page.getByRole('article')).toHaveCount(4);
   for (const size of [{ width: 320, height: 568 }, { width: 393, height: 852 }, { width: 768, height: 1024 }]) {
     await page.setViewportSize(size);
     await page.evaluate(() => document.fonts.ready);
@@ -44,6 +45,34 @@ test('visible number glyphs stay centered on phone and tablet screens', async ({
       expect.soft(Math.abs(ink.y), JSON.stringify({ size, value: await number.textContent(), ink, fontSize })).toBeLessThanOrEqual(Math.max(1.5, fontSize * .025));
     }
   }
+});
+
+test('closing and reopening resets every count but preserves player settings', async ({ page, context }) => {
+  await page.goto('/'); await setup(page);
+  await page.getByRole('button', { name: '4 players', exact: true }).click();
+  await page.getByRole('switch', { name: 'Allow energy above 10 for Player 4', exact: true }).check();
+  await done(page);
+  for (let i = 1; i <= 4; i++) await page.getByRole('button', { name: `Charge +3 for Player ${i}`, exact: true }).click();
+  await page.getByRole('button', { name: 'Edit Player 1', exact: true }).click();
+  await page.getByLabel('Player name', { exact: true }).fill('Ren');
+  await page.getByRole('button', { name: 'Choose peach', exact: true }).click();
+  await page.getByRole('button', { name: 'Rotate player', exact: true }).click();
+  await done(page);
+  // Hidden players must reset too.
+  await setup(page); await page.getByRole('button', { name: '2 players', exact: true }).click(); await done(page);
+  await page.reload();
+  await expect(page.locator('.counter-value')).toHaveText(['3', '3']);
+  await page.close();
+  const reopened = await context.newPage();
+  await reopened.goto('/');
+  await expect(reopened.locator('.counter-value')).toHaveText(['0', '0']);
+  const ren = reopened.getByRole('article', { name: 'Ren tracker', exact: true });
+  await expect(ren.locator('.rotated')).toHaveCount(0);
+  await expect(ren).toHaveAttribute('style', /#ffac87/);
+  await setup(reopened); await reopened.getByRole('button', { name: '4 players', exact: true }).click();
+  await expect(reopened.getByRole('switch', { name: 'Allow energy above 10 for Player 4', exact: true })).toBeChecked();
+  await done(reopened);
+  await expect(reopened.locator('.counter-value')).toHaveText(['0', '0', '0', '0']);
 });
 
 test('small-screen Setup keeps actions visible while all four player settings remain reachable', async ({ page }) => {
@@ -188,8 +217,10 @@ test('edge taps cover both full player halves, including rotated seats', async (
       await plus.click({ position: { x: hit.width / 4, y: 8 } });
       await plus.click({ position: { x: hit.width / 4, y: hit.height - 8 } });
       await expect(zone.locator('.counter-value')).toHaveText('2');
-      await minus.click({ position: { x: hit.width / 4, y: 8 } });
-      await minus.click({ position: { x: hit.width / 4, y: hit.height - 8 } });
+      const rotated = await zone.locator('.rotated').count() > 0;
+      // The bottom-docked +3 occupies the middle of the outer edge.
+      await minus.click({ position: { x: rotated ? 8 : hit.width / 4, y: 8 } });
+      await minus.click({ position: { x: rotated ? hit.width / 4 : 8, y: hit.height - 8 } });
       await expect(zone.locator('.counter-value')).toHaveText('0');
     }
   }

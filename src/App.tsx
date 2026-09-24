@@ -5,9 +5,9 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { App as NativeApp } from '@capacitor/app';
 import { ScreenAwake } from './native';
 import { PlayerZone } from './PlayerZone';
-import { COLORS, STORAGE_KEY, TABLE_KEY, isRotated, parseState, parseTable, reducer, type Action, type Player } from './model';
+import { COLORS, STORAGE_KEY, SESSION_KEY, TABLE_KEY, isRotated, newSession, restoreSession, parseTable, reducer, type Action, type Player } from './model';
 
-function read(key: string) { try { return localStorage.getItem(key); } catch { return null; } }
+function read(key: string, session = false) { try { return (session ? sessionStorage : localStorage).getItem(key); } catch { return null; } }
 type Modal = 'setup' | { player: number } | null;
 function Dialog({ title, children, close, className }: { title: string; children: ReactNode; close: () => void; className?: string }) {
   const ref = useRef<HTMLDialogElement>(null); const id = useId();
@@ -24,11 +24,18 @@ function Profile({ player, save, rotate }: { player: Player; save: (name: string
   </form>;
 }
 export default function App() {
-  const [state, dispatch] = useReducer(reducer, undefined, () => parseState(read(STORAGE_KEY)));
+  const [state, dispatch] = useReducer(reducer, undefined, () => restoreSession(read(STORAGE_KEY), read(SESSION_KEY, true), Capacitor.isNativePlatform()));
   const [table, setTable] = useState(() => parseTable(read(TABLE_KEY)));
   const [modal, setModal] = useState<Modal>(null); const [saveError, setSaveError] = useState(false);
   const { board } = state;
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); localStorage.setItem(TABLE_KEY, JSON.stringify(table)); setSaveError(false); } catch { setSaveError(true); } }, [state, table]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSession(state)));
+      localStorage.setItem(TABLE_KEY, JSON.stringify(table));
+      if (!Capacitor.isNativePlatform()) sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+      setSaveError(false);
+    } catch { setSaveError(true); }
+  }, [state, table]);
   useEffect(() => {
     if (Capacitor.isNativePlatform()) { void ScreenAwake.setEnabled({ enabled: true }).catch(() => {}); return; }
     let lock: WakeLockSentinel | null = null; let cancelled = false;
@@ -38,7 +45,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    const listener = NativeApp.addListener('backButton', () => { if (modal) setModal(null); else void NativeApp.minimizeApp(); });
+    const listener = NativeApp.addListener('backButton', () => { if (modal) setModal(null); else void NativeApp.exitApp(); });
     return () => { void listener.then(handle => handle.remove()); };
   }, [modal]);
   const act = (action: Action) => { dispatch(action); if (Capacitor.isNativePlatform()) void Haptics.impact({ style: ImpactStyle.Light }).catch(() => {}); };

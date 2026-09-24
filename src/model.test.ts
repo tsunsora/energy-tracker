@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { COLORS, MAX_ENERGY, initialState, isRotated, parseState, parseTable, reducer } from './model';
+import { COLORS, MAX_ENERGY, initialState, isRotated, newSession, restoreSession, parseState, parseTable, reducer } from './model';
 
 describe('energy only', () => {
+  it('starts a fresh native game even with restored session storage, preserving preferences', () => {
+    let s = reducer(initialState(), { type: 'profile', id: 0, name: 'Ren', color: COLORS[2] });
+    s = reducer(s, { type: 'limit', id: 3, allowAbove10: true });
+    s = reducer(s, { type: 'energy', id: 0, delta: 7 });
+    s = reducer(s, { type: 'energy', id: 3, delta: 125 });
+    const raw = JSON.stringify(s);
+    const fresh = restoreSession(raw, raw, true);
+    expect(fresh.board.players.map(p => p.energy)).toEqual([0, 0, 0, 0]);
+    expect(fresh.past).toEqual([]);
+    expect(fresh.board.count).toBe(2);
+    expect(fresh.board.players[0]).toMatchObject({ name: 'Ren', color: COLORS[2] });
+    expect(fresh.board.players[3].allowAbove10).toBe(true);
+    expect(s.board.players[3].energy).toBe(125);
+    expect(restoreSession(raw, null, false)).toEqual(fresh);
+    expect(restoreSession(JSON.stringify(newSession(s)), raw, false)).toEqual(s);
+  });
   it('caps normal charging at 10 and never permits negative energy', () => {
     let s = initialState();
     expect(reducer(s, { type: 'energy', id: 0, delta: -1 })).toBe(s);

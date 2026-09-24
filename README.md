@@ -6,19 +6,19 @@ A simple, offline Android energy tracker for two or four players.
 
 ## Use
 
-- Tap the upper half of a player's area to add one energy, or the lower half to subtract one. The + and − symbols sit just above and below the number, and controls follow each player's orientation. The name and **+3** buttons remain separate controls.
+- Tap the upper half of a player's area to add one energy, or the lower half to subtract one. Large, subtle + and − symbols sit in the center of each tap area, and controls follow each player's orientation. The name and **+3** buttons remain separate controls.
 - Tap the center setup button to choose two or four players and configure energy limits. Opponent-facing seating is always enabled, including for older saves.
 - Hold the − area for 0.6 seconds to set just that player's energy to zero. Slide away to cancel before the hold completes.
 - Under **Allow energy above 10**, enable the switch for any player whose deck needs it. Other players still stop at 10. Extended counters support 0–9,999.
 - Lower a player's energy to 10 or less before switching the normal limit back on; changing a setting never silently deletes energy.
 - Tap a player's name to rename them, change their color, or rotate their area.
-- Each player's name sits at the top-left of their view, with a large +3 button at the bottom. Both follow the player's orientation. The + and − strokes have matching gaps from the number, adapting to smaller screens.
+- Each player's name sits at the top-left of their view, with a subtle +3 button flush against the bottom edge. Both follow the player's orientation.
 
-Energy and preferences save automatically on the device. The Android app is locked to portrait and keeps the display awake while open. The installed web app also requests portrait orientation; a regular browser tab follows the browser's orientation. Setup groups player layout and energy limits, with a scrollable settings area and a fixed Done button for small screens. No account, ads, tracking, or network connection is required.
+Player preferences save automatically. All four energy counts reset when the Android app is closed and opened again, including when closed with Back from the tracker. Switching apps or locking the screen keeps the current game. In the browser, counts survive reloads in the same tab and reset in a new tab. The Android app is locked to portrait and keeps the display awake while open. The installed web app also requests portrait orientation; a regular browser tab follows the browser's orientation. Setup groups player layout and energy limits, with a scrollable settings area and a fixed Done button for small screens. No account, ads, tracking, or network connection is required.
 
 The native manifest includes the [Android 16 compatibility setting](https://developer.android.com/about/versions/16/behavior-changes-16) for portrait restrictions on large screens. Device or window-management overrides may still apply; the web layout remains responsive when the OS overrides orientation.
 
-Version 1.2 removes damage, soul, wins, turns, dice, timers, nations, themes, activity logs, and swipe pages. Only energy controls remain. Existing player names, colors, energy, count, and individual rotation preferences migrate from earlier versions. Setup no longer includes Undo, Reset energy, or a Face opponents switch.
+Version 1.2 removes damage, soul, wins, turns, dice, timers, nations, themes, activity logs, and swipe pages. Only energy controls remain. Existing player names, colors, player count, and individual rotation preferences migrate from earlier versions; a fresh launch starts energy at zero. Setup no longer includes Undo, Reset energy, or a Face opponents switch.
 
 ## Android
 

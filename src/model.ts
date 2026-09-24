@@ -1,6 +1,7 @@
 export const COLORS = ['#c9f76f', '#b6a0ff', '#ffac87', '#81dce5'];
 export const MAX_ENERGY = 9999;
 export const STORAGE_KEY = 'vanguard-energy-v1';
+export const SESSION_KEY = 'vanguard-session-v1';
 export type Player = { id: number; name: string; color: string; energy: number; allowAbove10: boolean };
 export type Board = { players: Player[]; count: 2 | 4 };
 export type State = { board: Board; past: Board[] };
@@ -77,6 +78,18 @@ export function parseState(raw: string | null): State {
     const past = Array.isArray(value.past) ? value.past.slice(-50).map(parseBoard).filter((b: Board | null): b is Board => b !== null) : [];
     return { board, past };
   } catch { return initialState(); }
+}
+
+// Keep player preferences across launches, but never carry a game's counts
+// or undo history into a new session (including hidden players).
+export function newSession(state: State): State {
+  return { board: { ...state.board, players: state.board.players.map(p => ({ ...p, energy: 0 })) }, past: [] };
+}
+
+export function restoreSession(saved: string | null, session: string | null, native: boolean): State {
+  // Android keeps the current game in memory while backgrounded. A new
+  // WebView starts fresh even if its old session storage was restored.
+  return !native && session ? parseState(session) : newSession(parseState(saved));
 }
 
 export const TABLE_KEY = 'vanguard-tabletop-v2';
