@@ -34,3 +34,6 @@ dialog{color:#e9eee7;background:#1b2223;border:1px solid #394440;border-radius:1
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important}}
 
 .setup-body>.energy-limits{margin-top:24px}
+
+/* In four-player mode, keep names toward the outside edges of the table. */
+.players-4 .player-zone:nth-child(1) .player-name,.players-4 .player-zone:nth-child(4) .player-name{left:auto;right:12px;text-align:right}
