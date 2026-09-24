@@ -1,4 +1,4 @@
-# Energy — Vanguard Tracker
+# Vanguard Energy
 
 A simple, offline Android energy tracker for two or four players.
 
