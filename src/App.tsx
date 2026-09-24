@@ -43,8 +43,10 @@ export default function App() {
   }, [modal]);
   const act = (action: Action) => { dispatch(action); if (Capacitor.isNativePlatform()) void Haptics.impact({ style: ImpactStyle.Light }).catch(() => {}); };
   return <div className="tabletop">
-    <main className={`table-surface players-${board.count}`} aria-label="Energy trackers">{board.players.slice(0, board.count).map((p, i) => <PlayerZone key={p.id} player={p} rotated={isRotated(i, board.count, table)} act={act} edit={() => setModal({ player: p.id })}/>)}</main>
-    <button className="setup-button" aria-label="Open setup" onClick={() => setModal('setup')}><Settings2 size={21}/></button>
+    <main className={`table-surface players-${board.count}`} aria-label="Energy trackers">
+      {board.players.slice(0, board.count).map((p, i) => <PlayerZone key={p.id} player={p} rotated={isRotated(i, board.count, table)} act={act} edit={() => setModal({ player: p.id })}/>)}
+      <button className="setup-button" aria-label="Open setup" onClick={() => setModal('setup')}><Settings2 size={21}/></button>
+    </main>
     {saveError && <div className="save-warning" role="alert">Storage unavailable. Keep the app open to retain your energy.</div>}
     {modal === 'setup' && <Dialog title="Setup" className="setup-dialog" close={() => setModal(null)}>
       <div className="setup-body">
