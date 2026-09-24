@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.tools/
+*.local
+android/.gradle/
+android/local.properties
+android/**/build/
+test-results/
+playwright-report/
+*.tsbuildinfo
+
+# Local outputs and signing material; distribute APKs through GitHub Releases.
+releases/
+screenshots/*.png
+*.jks
+*.keystore
+*.p12
+*.pem
+.env
+.env.*
+!.env.example
