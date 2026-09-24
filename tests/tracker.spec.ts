@@ -146,9 +146,9 @@ test('four players fit without scrolling in portrait and landscape', async ({ pa
       await setup(page); await page.getByRole('button', { name: `${count} ${count === 1 ? 'player' : 'players'}`, exact: true }).click(); await done(page);
       await expect(page.getByRole('article')).toHaveCount(count);
       for (let i = 1; i <= count; i++) {
-        await page.getByRole('button', { name: `Add 1 energy to Player ${i}`, exact: true }).click();
+        await page.getByRole('button', { name: `Add 1 energy to Player ${i}`, exact: true }).locator('svg').click();
         await expect(page.getByRole('article', { name: `Player ${i} tracker`, exact: true }).locator('.counter-value')).toHaveText('1');
-        await page.getByRole('button', { name: `Remove 1 energy from Player ${i}`, exact: true }).click();
+        await page.getByRole('button', { name: `Remove 1 energy from Player ${i}`, exact: true }).locator('svg').click();
       }
       expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }

@@ -39,8 +39,8 @@ export function PlayerZone({ player, rotated, act, edit }: {
     if (p?.id === event.pointerId && Math.hypot(event.clientX - p.x, event.clientY - p.y) > 14) { moved.current = true; cancelHold(); }
   };
   return <article className="player-zone" style={{ '--player': player.color } as CSSProperties} aria-label={`${player.name} tracker`}>
+    <button className={`player-name ${rotated ? 'rotated' : ''}`} aria-label={`Edit ${player.name}`} onClick={edit}>{player.name}</button>
     <div className={`zone-facing ${rotated ? 'rotated' : ''}`}>
-      <button className="player-name" aria-label={`Edit ${player.name}`} onClick={edit}>{player.name}</button>
       <div className={`energy-control digits-${String(player.energy).length}`} onPointerDown={start} onPointerMove={move} onPointerUp={cancelHold} onPointerCancel={() => { moved.current = true; cancelHold(); }} onClickCapture={e => { if (moved.current) { e.preventDefault(); e.stopPropagation(); moved.current = false; } }}>
         <button className="tap-half plus-half" aria-label={`Add 1 energy to ${player.name}`} disabled={player.energy === energyLimit(player)} onClick={() => act({ type: 'energy', id: player.id, delta: 1 })}><Plus/></button>
         <div className="counter-readout" aria-live="polite" aria-atomic="true"><span className="counter-value">{player.energy}</span></div>
