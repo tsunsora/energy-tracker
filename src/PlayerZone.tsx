@@ -1,5 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type PointerEvent } from 'react';
-import { Minus, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { energyLimit, type Action, type Player } from './model';
 
 export function PlayerZone({ player, rotated, act }: {
@@ -42,9 +42,9 @@ export function PlayerZone({ player, rotated, act }: {
     <div className={`zone-facing ${rotated ? 'rotated' : ''}`}>
       <span className="player-name">{player.name}</span>
       <div className={`energy-control digits-${String(player.energy).length}`} onPointerDown={start} onPointerMove={move} onPointerUp={cancelHold} onPointerCancel={() => { moved.current = true; cancelHold(); }} onClickCapture={e => { if (moved.current) { e.preventDefault(); e.stopPropagation(); moved.current = false; } }}>
-        <button className="tap-half plus-half" aria-label={`Add 1 energy to ${player.name}`} disabled={player.energy === energyLimit(player)} onClick={() => act({ type: 'energy', id: player.id, delta: 1 })}><Plus/></button>
+        <button className="tap-half plus-half" aria-label={`Add 1 energy to ${player.name}`} disabled={player.energy === energyLimit(player)} onClick={() => act({ type: 'energy', id: player.id, delta: 1 })}><span className="adjust-indicator" aria-hidden="true"><ChevronUp/><span>ADD</span></span></button>
         <div className="counter-readout" aria-live="polite" aria-atomic="true"><span className="counter-value">{player.energy}</span></div>
-        <button className="tap-half minus-half" aria-label={`Remove 1 energy from ${player.name}`} aria-description="Hold to reset energy to zero" disabled={player.energy === 0} onPointerDown={startHold} onPointerLeave={cancelHold} onContextMenu={e => e.preventDefault()} onClick={() => act({ type: 'energy', id: player.id, delta: -1 })}><Minus/></button>
+        <button className="tap-half minus-half" aria-label={`Remove 1 energy from ${player.name}`} aria-description="Hold to reset energy to zero" disabled={player.energy === 0} onPointerDown={startHold} onPointerLeave={cancelHold} onContextMenu={e => e.preventDefault()} onClick={() => act({ type: 'energy', id: player.id, delta: -1 })}><span className="adjust-indicator" aria-hidden="true"><ChevronDown/><span>REMOVE</span></span></button>
       </div>
       <button className="charge-button" aria-label={`Charge +3 for ${player.name}`} disabled={player.energy === energyLimit(player)} onClick={() => act({ type: 'energy', id: player.id, delta: 3 })}>+3</button>
     </div>

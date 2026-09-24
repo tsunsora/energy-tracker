@@ -6,9 +6,9 @@ A simple, offline Android energy tracker for two or four players.
 
 ## Use
 
-- Tap the upper half of a player's area to add one energy, or the lower half to subtract one. Large, subtle + and − symbols sit in the center of each tap area, and controls follow each player's orientation. The **+3** button remains a separate control. Player names are plain labels.
+- Tap the upper half of a player's area to add one energy, or the lower half to subtract one. Subtle chevrons labeled ADD and REMOVE identify the center of each tap area, and controls follow each player's orientation. The **+3** button remains a separate control. Player names are plain labels.
 - Tap the center setup button to choose two or four players and configure energy limits. Opponent-facing seating is always enabled, including for older saves.
-- Hold the − area for 0.6 seconds to set just that player's energy to zero. Slide away to cancel before the hold completes.
+- Hold the REMOVE area for 0.6 seconds to set just that player's energy to zero. Slide away to cancel before the hold completes.
 - Under **Allow energy above 10**, enable the switch for any player whose deck needs it. Other players still stop at 10. Extended counters support 0–9,999.
 - Lower a player's energy to 10 or less before switching the normal limit back on; changing a setting never silently deletes energy.
 - Player names are noninteractive labels; tapping them does not open settings or change energy. The app does not vibrate.
