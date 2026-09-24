@@ -1,31 +1,22 @@
 import { useEffect, useId, useReducer, useRef, useState, type ReactNode } from 'react';
-import { Check, RotateCcw, Settings2, X } from 'lucide-react';
+import { Check, Settings2, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+
 import { App as NativeApp } from '@capacitor/app';
 import { ScreenAwake } from './native';
 import { PlayerZone } from './PlayerZone';
-import { COLORS, STORAGE_KEY, SESSION_KEY, TABLE_KEY, isRotated, newSession, restoreSession, parseTable, reducer, type Action, type Player } from './model';
+import { STORAGE_KEY, SESSION_KEY, TABLE_KEY, isRotated, newSession, restoreSession, parseTable, reducer } from './model';
 
 function read(key: string, session = false) { try { return (session ? sessionStorage : localStorage).getItem(key); } catch { return null; } }
-type Modal = 'setup' | { player: number } | null;
+type Modal = 'setup' | null;
 function Dialog({ title, children, close, className }: { title: string; children: ReactNode; close: () => void; className?: string }) {
   const ref = useRef<HTMLDialogElement>(null); const id = useId();
   useEffect(() => { const previous = document.activeElement as HTMLElement; const el = ref.current; el?.showModal(); return () => { el?.close(); previous?.focus(); }; }, []);
   return <dialog ref={ref} className={className} aria-labelledby={id} onCancel={e => { e.preventDefault(); close(); }} onClick={e => { if (e.target === e.currentTarget) close(); }}><div className="dialog-inner"><header className="dialog-heading"><h2 id={id}>{title}</h2><button className="icon-button" aria-label="Close dialog" onClick={close}><X size={20}/></button></header>{children}</div></dialog>;
 }
-function Profile({ player, save, rotate }: { player: Player; save: (name: string, color: string) => void; rotate: () => void }) {
-  const [name, setName] = useState(player.name); const [color, setColor] = useState(player.color);
-  return <form className="form-stack" onSubmit={e => { e.preventDefault(); save(name, color); }}>
-    <label>Player name<input autoFocus maxLength={24} value={name} onChange={e => setName(e.target.value)}/></label>
-    <fieldset><legend>Color</legend><div className="swatches">{COLORS.map((c, i) => <button type="button" key={c} aria-label={`Choose ${['lime', 'violet', 'peach', 'cyan'][i]}`} aria-pressed={color === c} style={{ background: c }} onClick={() => setColor(c)}>{color === c && <Check size={19}/>}</button>)}</div></fieldset>
-    <button className="secondary" type="button" onClick={rotate}><RotateCcw size={16}/>Rotate player</button>
-    <button className="primary" type="submit">Done</button>
-  </form>;
-}
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => restoreSession(read(STORAGE_KEY), read(SESSION_KEY, true), Capacitor.isNativePlatform()));
-  const [table, setTable] = useState(() => parseTable(read(TABLE_KEY)));
+  const [table] = useState(() => parseTable(read(TABLE_KEY)));
   const [modal, setModal] = useState<Modal>(null); const [saveError, setSaveError] = useState(false);
   const { board } = state;
   useEffect(() => {
@@ -48,10 +39,10 @@ export default function App() {
     const listener = NativeApp.addListener('backButton', () => { if (modal) setModal(null); else void NativeApp.exitApp(); });
     return () => { void listener.then(handle => handle.remove()); };
   }, [modal]);
-  const act = (action: Action) => { dispatch(action); if (Capacitor.isNativePlatform()) void Haptics.impact({ style: ImpactStyle.Light }).catch(() => {}); };
+  const act = dispatch;
   return <div className="tabletop">
     <main className={`table-surface players-${board.count}`} aria-label="Energy trackers">
-      {board.players.slice(0, board.count).map((p, i) => <PlayerZone key={p.id} player={p} rotated={isRotated(i, board.count, table)} act={act} edit={() => setModal({ player: p.id })}/>)}
+      {board.players.slice(0, board.count).map((p, i) => <PlayerZone key={p.id} player={p} rotated={isRotated(i, board.count, table)} act={act}/>)}
       <button className="setup-button" aria-label="Open setup" onClick={() => setModal('setup')}><Settings2 size={21}/></button>
     </main>
     {saveError && <div className="save-warning" role="alert">Storage unavailable. Keep the app open to retain your energy.</div>}
@@ -64,6 +55,5 @@ export default function App() {
       </div>
       <footer className="setup-footer"><button className="primary full" onClick={() => setModal(null)}>Done</button></footer>
     </Dialog>}
-    {modal && typeof modal === 'object' && <Dialog title="Player" close={() => setModal(null)}><Profile player={board.players[modal.player]} rotate={() => setTable(t => ({ ...t, flips: t.flips.map((f, i) => i === modal.player ? !f : f) }))} save={(name, color) => { act({ type: 'profile', id: modal.player, name, color }); setModal(null); }}/></Dialog>}
   </div>;
 }

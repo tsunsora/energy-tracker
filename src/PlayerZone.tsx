@@ -2,8 +2,8 @@ import { useEffect, useRef, type CSSProperties, type PointerEvent } from 'react'
 import { Minus, Plus } from 'lucide-react';
 import { energyLimit, type Action, type Player } from './model';
 
-export function PlayerZone({ player, rotated, act, edit }: {
-  player: Player; rotated: boolean; act: (action: Action) => void; edit: () => void;
+export function PlayerZone({ player, rotated, act }: {
+  player: Player; rotated: boolean; act: (action: Action) => void;
 }) {
   const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
   const moved = useRef(false);
@@ -40,7 +40,7 @@ export function PlayerZone({ player, rotated, act, edit }: {
   };
   return <article className="player-zone" style={{ '--player': player.color } as CSSProperties} aria-label={`${player.name} tracker`}>
     <div className={`zone-facing ${rotated ? 'rotated' : ''}`}>
-      <button className="player-name" aria-label={`Edit ${player.name}`} onClick={edit}>{player.name}</button>
+      <span className="player-name">{player.name}</span>
       <div className={`energy-control digits-${String(player.energy).length}`} onPointerDown={start} onPointerMove={move} onPointerUp={cancelHold} onPointerCancel={() => { moved.current = true; cancelHold(); }} onClickCapture={e => { if (moved.current) { e.preventDefault(); e.stopPropagation(); moved.current = false; } }}>
         <button className="tap-half plus-half" aria-label={`Add 1 energy to ${player.name}`} disabled={player.energy === energyLimit(player)} onClick={() => act({ type: 'energy', id: player.id, delta: 1 })}><Plus/></button>
         <div className="counter-readout" aria-live="polite" aria-atomic="true"><span className="counter-value">{player.energy}</span></div>

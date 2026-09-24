@@ -53,11 +53,6 @@ test('closing and reopening resets every count but preserves player settings', a
   await page.getByRole('switch', { name: 'Allow energy above 10 for Player 4', exact: true }).check();
   await done(page);
   for (let i = 1; i <= 4; i++) await page.getByRole('button', { name: `Charge +3 for Player ${i}`, exact: true }).click();
-  await page.getByRole('button', { name: 'Edit Player 1', exact: true }).click();
-  await page.getByLabel('Player name', { exact: true }).fill('Ren');
-  await page.getByRole('button', { name: 'Choose peach', exact: true }).click();
-  await page.getByRole('button', { name: 'Rotate player', exact: true }).click();
-  await done(page);
   // Hidden players must reset too.
   await setup(page); await page.getByRole('button', { name: '2 players', exact: true }).click(); await done(page);
   await page.reload();
@@ -66,9 +61,9 @@ test('closing and reopening resets every count but preserves player settings', a
   const reopened = await context.newPage();
   await reopened.goto('/');
   await expect(reopened.locator('.counter-value')).toHaveText(['0', '0']);
-  const ren = reopened.getByRole('article', { name: 'Ren tracker', exact: true });
-  await expect(ren.locator('.rotated')).toHaveCount(0);
-  await expect(ren).toHaveAttribute('style', /#ffac87/);
+  const first = reopened.getByRole('article', { name: 'Player 1 tracker', exact: true });
+  await expect(first.locator('.rotated')).toHaveCount(1);
+  await expect(first).toHaveAttribute('style', /#c9f76f/);
   await setup(reopened); await reopened.getByRole('button', { name: '4 players', exact: true }).click();
   await expect(reopened.getByRole('switch', { name: 'Allow energy above 10 for Player 4', exact: true })).toBeChecked();
   await done(reopened);
@@ -184,13 +179,17 @@ test('four players fit without scrolling in portrait and landscape', async ({ pa
   }
 });
 
-test('names and orientation persist and sliding does not change energy', async ({ page }) => {
+test('player labels are inert and sliding does not change energy', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Edit Player 1', exact: true }).click();
-  await page.getByLabel('Player name', { exact: true }).fill('Ren');
-  await page.getByRole('button', { name: 'Rotate player', exact: true }).click(); await done(page);
-  const p = page.getByRole('article', { name: 'Ren tracker', exact: true });
-  await expect(p.locator('.rotated')).toHaveCount(0);
+  for (const count of [2, 4]) {
+    await setup(page); await page.getByRole('button', { name: `${count} players`, exact: true }).click(); await done(page);
+    await expect(page.getByRole('button', { name: /^Edit Player/ })).toHaveCount(0);
+    for (const label of await page.locator('.player-name').all()) await label.click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('.counter-value')).toHaveText(Array(count).fill('0'));
+  }
+  const p = page.getByRole('article', { name: 'Player 1 tracker', exact: true });
+  await expect(p.locator('.rotated')).toHaveCount(1);
   const box = await p.locator('.energy-control').boundingBox();
   if (!box) throw new Error('No counter area');
   await page.mouse.move(box.x + box.width * .6, box.y + box.height / 2);
@@ -198,7 +197,7 @@ test('names and orientation persist and sliding does not change energy', async (
   await page.mouse.move(box.x + box.width * .8, box.y + box.height / 2, { steps: 8 });
   await page.mouse.up();
   await expect(p.locator('.counter-value')).toHaveText('0');
-  await page.reload(); await expect(p).toBeVisible(); await expect(p.locator('.rotated')).toHaveCount(0);
+  await page.reload(); await expect(p).toBeVisible(); await expect(p.locator('.rotated')).toHaveCount(1);
 });
 
 test('edge taps cover both full player halves, including rotated seats', async ({ page }) => {
