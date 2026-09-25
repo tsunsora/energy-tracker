@@ -1,63 +1,125 @@
+<p align="center">
+  <img src="public/icon.svg" width="88" alt="Vanguard Energy app icon">
+</p>
+
 # Vanguard Energy
 
-A simple, offline Android energy tracker for two or four players.
+An offline energy tracker for **two or four Cardfight!! Vanguard players**, built for a shared Android phone. Large tap areas, opponent-facing controls, and a focused portrait layout keep the table moving.
 
-[Download the latest Android APK](https://github.com/tsunsora/energy-tracker/releases/latest/download/energy-tracker.apk) · [All releases](https://github.com/tsunsora/energy-tracker/releases)
+[**Download Android APK**](https://github.com/tsunsora/energy-tracker/releases/latest/download/energy-tracker.apk) · [Releases](https://github.com/tsunsora/energy-tracker/releases) · [Report an issue](https://github.com/tsunsora/energy-tracker/issues)
 
-## Use
+## At a glance
 
-- Tap the upper half of a player's area to add one energy, or the lower half to subtract one. Subtle chevrons labeled ADD and REMOVE identify the center of each tap area, and controls follow each player's orientation. The **+3** button remains a separate control. Player names are plain labels.
-- Tap the center setup button to choose two or four players and configure energy limits. Opponent-facing seating is always enabled, including for older saves.
-- Hold the REMOVE area for 0.6 seconds to set just that player's energy to zero. Slide away to cancel before the hold completes.
-- Under **Allow energy above 10**, enable the switch for any player whose deck needs it. Other players still stop at 10. Extended counters support 0–9,999.
-- Lower a player's energy to 10 or less before switching the normal limit back on; changing a setting never silently deletes energy.
-- Player names are noninteractive labels; tapping them does not open settings or change energy. The app does not vibrate.
-- Player names sit toward the outside edges in four-player mode and at the top-left of each player's view in two-player mode. A subtle +3 button sits flush against the bottom edge. Both follow the player's orientation.
+- **Two or four players:** each player's controls face their side of the table.
+- **Quick adjustments:** tap for +1 or −1, use the dedicated +3 button, or hold to clear one counter.
+- **Individual energy limits:** stop at 10 by default; enable up to 9,999 for decks that need more.
+- **Ready for the table:** portrait orientation, an awake display, and no vibration.
+- **Offline from first launch on Android:** no account, ads, or network connection required.
 
-Player preferences save automatically. All four energy counts reset when the Android app is closed and opened again, including when closed with Back from the tracker. Switching apps or locking the screen keeps the current game. In the browser, counts survive reloads in the same tab and reset in a new tab. The Android app is locked to portrait and keeps the display awake while open. The installed web app also requests portrait orientation; a regular browser tab follows the browser's orientation. Setup groups player layout and energy limits, with a scrollable settings area and a fixed Done button for small screens. No account, ads, tracking, or network connection is required.
+## Install on Android
 
-The native manifest includes the [Android 16 compatibility setting](https://developer.android.com/about/versions/16/behavior-changes-16) for portrait restrictions on large screens. Device or window-management overrides may still apply; the web layout remains responsive when the OS overrides orientation.
+1. Download `energy-tracker.apk` from the [latest release](https://github.com/tsunsora/energy-tracker/releases/latest).
+2. Open the APK on **Android 7.0 or newer**, with an up-to-date Android System WebView.
+3. Allow installation from your browser or file manager if Android prompts you, then open Vanguard Energy.
 
-Version 1.2 removes damage, soul, wins, turns, dice, timers, nations, themes, activity logs, and swipe pages. Only energy controls remain. Existing player names, colors, player count, and individual rotation preferences migrate from earlier versions; a fresh launch starts energy at zero. Setup no longer includes Undo, Reset energy, or a Face opponents switch.
+The release is a debug-signed APK for sideloading. A SHA-256 checksum is included with each release. Use the release APK for installed updates; development builds from GitHub Actions use a temporary signing key and may not install over it.
 
-## Android
+## At the table
 
-Download `energy-tracker.apk` from [GitHub Releases](https://github.com/tsunsora/energy-tracker/releases/latest) and install it on Android 7.0+ with a current Android System WebView. This is a debug-signed APK for sideloading, not a Play Store release. Version 1.2.8 uses the same app ID and signing key as the previous local builds, allowing an update without uninstalling or clearing data. The release includes a SHA-256 checksum.
+| Control | Action |
+| --- | --- |
+| Upper **ADD** half of a player's area | Add 1 energy |
+| Lower **REMOVE** half | Remove 1 energy |
+| **+3** button | Add 3 energy, up to that player's limit |
+| Hold **REMOVE** for 0.6 seconds | Reset that player to zero; slide away to cancel |
+| Center setup button | Choose two or four players and set individual energy limits |
+
+All directions follow the player's orientation. Player names are labels; tapping them does not change energy or open settings.
+
+In **Setup → Allow energy above 10**, enable the switch for each player who needs an extended counter. Lower their energy to 10 or less before switching it off. Changing the limit never silently discards energy.
+
+### What gets saved?
+
+Player preferences save automatically. Energy counts follow the current session:
+
+| Where you play | Energy behavior |
+| --- | --- |
+| Android app | All four counters reset when the app closes and opens again, including after exiting with Back |
+| Switching apps or locking the screen | Keeps the current Android game |
+| Browser | Counts survive reloads in the same tab; a new tab starts at zero |
+
+The Android app requests portrait orientation and keeps the display awake while open. Device or window-management overrides may still apply. The installed web app also requests portrait; a regular browser tab follows the browser's orientation.
+
+## Run locally
+
+The app uses **React, TypeScript, Vite, and Capacitor**. Install **Node.js 22+**, then:
+
+```sh
+git clone https://github.com/tsunsora/energy-tracker.git
+cd energy-tracker
+npm ci
+npm run dev
+```
+
+Open `http://localhost:5173`. To build and preview the production browser app:
+
+```sh
+npm run build
+npm run preview
+```
+
+The production browser app works offline after its first successful load and service-worker installation over HTTPS or localhost. Android bundles its assets and works offline from the first launch.
+
+## Build for Android
+
+On Windows, install **JDK 21** and **Android SDK 36**, then run:
 
 ```powershell
 npm ci
 npm run android:build
 ```
 
-The Windows build script uses the workspace toolchain under `.tools` if present. Otherwise install JDK 21 and Android SDK 36. `scripts/setup-android.ps1` downloads verified development tools and accepts SDK licenses. Android Studio 2025.2.1+ can also open the project:
+The APK is written to `releases/energy-tracker.apk`. The build script uses a local `.tools/jdk` and `.tools/sdk` when present; otherwise, configure `JAVA_HOME` and `ANDROID_HOME` for your installed tools. The optional [setup script](scripts/setup-android.ps1) downloads verified development tools and accepts Android SDK licenses.
+
+To work in Android Studio 2025.2.1 or newer:
 
 ```sh
 npm run android:sync
 npm run android:open
 ```
 
-Future published updates must use the same signing key to install over the current release. Keep that key private and backed up. A successful build does not substitute for physical Android device testing.
+Published updates must retain the same app ID and signing key to install over an existing release. Keep the signing key private and backed up. Test builds on a physical Android device before release.
 
-## GitHub builds
-
-The Android build workflow runs unit tests, browser tests, and the offline check, then builds an APK on pushes to `main`, pull requests, and manual runs. Its downloadable artifact is a development build signed with the runner's temporary debug key, so use the APK on the Releases page for installed updates. APKs and signing keys are excluded from Git history.
-
-## Browser development and tests
-
-Requires Node.js 22+.
+## Checks
 
 ```sh
-npm ci
-npm run dev
 npm test
-npm run build
 npx playwright install chromium
 npm run test:e2e
+npm run build
 npm run test:offline
 ```
 
-Development preview: `http://localhost:5173`. The production browser app supports offline use after its first successful load and service-worker installation over HTTPS or localhost. Android assets are bundled and work offline from first launch.
+These cover energy limits, player settings, adjustments, persistence, legacy-save migration, and small portrait and landscape layouts. The offline check reloads a saved value above 10 and continues charging without a network connection.
 
-Tests cover normal and extended limits, independent player settings, +1/+3 adjustments, persistence above 10, legacy-save migration, reset/undo, and small portrait/landscape layouts. The offline test reloads a saved value above 10 and continues charging without a network connection.
+The [Android build workflow](.github/workflows/android-build.yml) runs unit, browser, and offline checks before producing a development APK on pushes to `main`, pull requests, and manual runs.
 
-Unofficial fan project, unaffiliated with Bushiroad. No official card art or logos are included. Fonts use the SIL Open Font License and Lucide icons use the ISC license; notices are bundled under `public/licenses`.
+## Project guide
+
+| Path | Contents |
+| --- | --- |
+| [`src/`](src/) | Tracker UI, energy rules, persistence, and unit tests |
+| [`tests/`](tests/) | Playwright browser checks |
+| [`android/`](android/) | Native Android project |
+| [`scripts/`](scripts/) | Android setup/build helpers and offline check |
+| [`public/licenses/`](public/licenses/) | Bundled font and icon notices |
+
+## Credits
+
+An unofficial fan project, unaffiliated with Bushiroad. No official card art or logos are included. Bundled fonts use the SIL Open Font License; Lucide icons use the ISC license. See [third-party notices](public/licenses/).
+
+## README counter
+
+[![Vanguard Energy README counter](https://count.getloli.com/@tsunsora-energy-tracker?theme=capoo-2)](https://count.getloli.com/)
+
+Powered by [Moe Counter](https://github.com/journey-ad/Moe-Counter). This counts image requests, not unique visitors; GitHub image caching can affect the total.
