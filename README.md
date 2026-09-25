@@ -118,8 +118,8 @@ The [Android build workflow](.github/workflows/android-build.yml) runs unit, bro
 
 An unofficial fan project, unaffiliated with Bushiroad. No official card art or logos are included. Bundled fonts use the SIL Open Font License; Lucide icons use the ISC license. See [third-party notices](public/licenses/).
 
-## README counter
+## Visitors
 
-[![Vanguard Energy README counter](https://count.getloli.com/@tsunsora-energy-tracker?theme=capoo-2)](https://count.getloli.com/)
+[![Vanguard Energy visitor counter](https://count.getloli.com/@tsunsora-energy-tracker?theme=rule34&padding=8&offset=0&align=top&scale=1&pixelated=1&darkmode=auto)](https://count.getloli.com/)
 
 Powered by [Moe Counter](https://github.com/journey-ad/Moe-Counter). This counts image requests, not unique visitors; GitHub image caching can affect the total.
