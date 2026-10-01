@@ -23,10 +23,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          cache: gradle
+          cache-dependency-path: '**/*.gradle.kts'
       - name: SDK and wrapper
         run: |
           chmod +x gradlew
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
       - name: Shared tests, Android lint, and debug build
         run: ./gradlew :shared:jvmTest :androidApp:lintDebug :androidApp:assembleDebug :androidApp:assembleDebugAndroidTest --stacktrace
       - name: Enable emulator acceleration
@@ -43,6 +45,8 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
+            adb shell svc wifi disable
+            adb shell svc data disable
             ./gradlew :androidApp:connectedDebugAndroidTest --stacktrace
             adb pull /sdcard/Android/data/app.vanguard.energy/files/screenshots androidApp/build/screenshots
       - name: Android artifacts
@@ -67,6 +71,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          cache: gradle
+          cache-dependency-path: '**/*.gradle.kts'
+      - name: Cache Kotlin native toolchain
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.konan
+          key: ${{ runner.os }}-${{ runner.arch }}-kotlin-native-2.3.21-xcode-16.4
       - name: Generate Xcode project
         run: |
           chmod +x gradlew

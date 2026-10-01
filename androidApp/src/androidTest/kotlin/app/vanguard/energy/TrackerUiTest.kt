@@ -71,7 +71,7 @@ class TrackerUiTest {
         }
         ui.onNodeWithTag("energy-0").assertContentDescriptionEquals("Player 1: 2 energy")
         ui.onNodeWithTag("energy-1").assertContentDescriptionEquals("Player 2: 1 energy")
-        ui.onNodeWithTag("remove-0").performTouchInput { down(center); moveTo(center + Offset(40f, 0f)); up() }
+        ui.onNodeWithTag("remove-0").performTouchInput { down(center); moveTo(center + Offset(100f, 0f)); up() }
         ui.onNodeWithTag("energy-0").assertContentDescriptionEquals("Player 1: 2 energy")
         activity!!.recreate()
         ready()
