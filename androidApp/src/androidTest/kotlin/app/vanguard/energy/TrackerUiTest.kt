@@ -3,6 +3,7 @@ package app.vanguard.energy
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -33,6 +34,10 @@ class TrackerUiTest {
     private fun launch() { activity = ActivityScenario.launch(MainActivity::class.java); ready() }
     private fun ready() { ui.waitUntil(10_000) { ui.onAllNodesWithTag("setup").fetchSemanticsNodes().isNotEmpty() } }
     private fun screenshot(name: String) {
+        ui.waitForIdle()
+        instrumentation.waitForIdleSync()
+        // UI semantics update before the system compositor commits its next frame.
+        Thread.sleep(100)
         val bitmap = instrumentation.uiAutomation.takeScreenshot()
         if (android.os.Build.VERSION.SDK_INT >= 29) {
             // Shared test images survive the test runner uninstalling the target APK.
@@ -65,6 +70,15 @@ class TrackerUiTest {
         ui.onNodeWithTag("remove-0").performTouchInput { up() }
         ui.onNodeWithTag("energy-0").assertContentDescriptionEquals("Player 1: 0 energy")
         ui.onNodeWithTag("setup").performClick()
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            val image = ui.onNodeWithText("Setup").captureToImage().toPixelMap()
+            var readablePixels = 0
+            for (y in 0 until image.height) for (x in 0 until image.width) {
+                val color = image[x, y]
+                if (color.red > .5f && color.green > .5f && color.blue > .5f) readablePixels++
+            }
+            assertTrue("Setup title must contrast with its dark background", readablePixels > 20)
+        }
         ui.onNodeWithTag("count-4").performClick()
         ui.onNodeWithTag("limit-0").performClick()
         screenshot("setup")

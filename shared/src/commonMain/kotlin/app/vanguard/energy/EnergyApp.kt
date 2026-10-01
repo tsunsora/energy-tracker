@@ -57,7 +57,9 @@ fun EnergyApp(session: TrackerSession) {
             titleLarge = default.titleLarge.copy(fontFamily = uiFont),
         )
     }
-    MaterialTheme(colorScheme = darkColorScheme(primary = Lime, background = Background, surface = Panel), typography = typography) {
+    MaterialTheme(colorScheme = darkColorScheme(primary = Lime, background = Background, surface = Panel,
+        onSurface = Color(0xffe9eee7)), typography = typography) {
+      CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
         BoxWithConstraints(Modifier.fillMaxSize().background(Background).windowInsetsPadding(WindowInsets.safeDrawing).padding(4.dp)) {
             val board = session.board
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -90,6 +92,7 @@ fun EnergyApp(session: TrackerSession) {
             }
             if (session.setupOpen) SetupDialog(session, maxHeight.value)
         }
+      }
     }
 }
 
