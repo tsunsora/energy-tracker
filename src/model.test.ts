@@ -3,14 +3,15 @@ import { COLORS, MAX_ENERGY, initialState, isRotated, newSession, restoreSession
 
 describe('energy only', () => {
   it('starts a fresh native game even with restored session storage, preserving preferences', () => {
-    let s = reducer(initialState(), { type: 'profile', id: 0, name: 'Ren', color: COLORS[2] });
+    let s = initialState();
+    Object.assign(s.board.players[0], { name: 'Ren', color: COLORS[2] });
     s = reducer(s, { type: 'limit', id: 3, allowAbove10: true });
     s = reducer(s, { type: 'energy', id: 0, delta: 7 });
     s = reducer(s, { type: 'energy', id: 3, delta: 125 });
     const raw = JSON.stringify(s);
     const fresh = restoreSession(raw, raw, true);
     expect(fresh.board.players.map(p => p.energy)).toEqual([0, 0, 0, 0]);
-    expect(fresh.past).toEqual([]);
+    expect(Object.keys(fresh)).toEqual(['board']);
     expect(fresh.board.count).toBe(2);
     expect(fresh.board.players[0]).toMatchObject({ name: 'Ren', color: COLORS[2] });
     expect(fresh.board.players[3].allowAbove10).toBe(true);
@@ -38,14 +39,16 @@ describe('energy only', () => {
     expect(s.board.players[0].allowAbove10).toBe(false);
     expect(s.board.players[0].energy).toBe(10);
   });
-  it('persists extended energy and restores it with undo', () => {
+  it('persists extended energy and resets only the selected player', () => {
     let s = reducer(initialState(), { type: 'limit', id: 0, allowAbove10: true });
     s = reducer(s, { type: 'energy', id: 0, delta: 125 });
     s = parseState(JSON.stringify(s));
     expect(s.board.players[0].energy).toBe(125);
-    const reset = reducer(s, { type: 'reset' });
+    s = reducer(s, { type: 'energy', id: 1, delta: 3 });
+    const reset = reducer(s, { type: 'reset-player', id: 0 });
     expect(reset.board.players[0].allowAbove10).toBe(true);
-    expect(reducer(reset, { type: 'undo' }).board).toEqual(s.board);
+    expect(reset.board.players.map(p => p.energy)).toEqual([0, 3, 0, 0]);
+    expect(s.board.players[0].energy).toBe(125);
   });
   it('retains hidden players when changing table size', () => {
     let s = reducer(initialState(), { type: 'limit', id: 3, allowAbove10: true });
@@ -60,9 +63,9 @@ describe('energy only', () => {
     const s = parseState(JSON.stringify(old));
     expect(s.board.players.map(p => p.energy)).toEqual([3, 4, 5, 6]);
     expect(Object.keys(s.board.players[0]).sort()).toEqual(['allowAbove10', 'color', 'energy', 'id', 'name']);
-    expect(s.past).toEqual([]);
+    expect(Object.keys(s)).toEqual(['board']);
   });
-  it('migrates retired table sizes in current and undo state without losing energy', () => {
+  it('migrates retired table sizes and discards old undo snapshots', () => {
     const old = initialState();
     old.board.players[0].energy = 7;
     const one = { ...old.board, count: 1 };
@@ -70,26 +73,28 @@ describe('energy only', () => {
     const migrated = parseState(JSON.stringify({ board: three, past: [one] }));
     expect(migrated.board.count).toBe(4);
     expect(migrated.board.players[0].energy).toBe(7);
-    const undone = reducer(migrated, { type: 'undo' });
-    expect(undone.board.count).toBe(2);
-    expect(undone.board.players[0].energy).toBe(7);
-    expect(reducer(undone, { type: 'count', count: 1 })).toBe(undone);
-    expect(reducer(undone, { type: 'count', count: 3 })).toBe(undone);
+    expect(parseState(JSON.stringify({ board: one })).board.count).toBe(2);
+    expect(Object.keys(migrated)).toEqual(['board']);
+    expect(reducer(migrated, { type: 'count', count: 1 })).toBe(migrated);
+    expect(reducer(migrated, { type: 'count', count: 3 })).toBe(migrated);
   });
-  it('rejects invalid storage and unsafe values, and bounds undo history', () => {
+  it('rejects invalid storage and unsafe values', () => {
     expect(parseState('bad')).toEqual(initialState());
     let s = reducer(initialState(), { type: 'limit', id: 0, allowAbove10: true });
     s = reducer(s, { type: 'energy', id: 0, delta: MAX_ENERGY + 1 });
     expect(s.board.players[0].energy).toBe(MAX_ENERGY);
     expect(reducer(s, { type: 'energy', id: 0, delta: Infinity })).toBe(s);
-    for (let i = 0; i < 60; i++) s = reducer(s, { type: 'energy', id: 0, delta: -1 });
-    expect(s.past).toHaveLength(50);
+    expect(reducer(s, { type: 'energy', id: 0, delta: NaN })).toBe(s);
+    const invalid = structuredClone(s);
+    invalid.board.players[0].energy = MAX_ENERGY + 1;
+    expect(parseState(JSON.stringify(invalid))).toEqual(initialState());
   });
   it('preserves names, colors, and limits on reset', () => {
-    let s = reducer(initialState(), { type: 'profile', id: 1, name: 'Ren', color: COLORS[2] });
+    let s = initialState();
+    Object.assign(s.board.players[1], { name: 'Ren', color: COLORS[2] });
     s = reducer(s, { type: 'limit', id: 1, allowAbove10: true });
     s = reducer(s, { type: 'energy', id: 1, delta: 20 });
-    s = reducer(s, { type: 'reset' });
+    s = reducer(s, { type: 'reset-player', id: 1 });
     expect(s.board.players[1]).toEqual({ id: 1, name: 'Ren', color: COLORS[2], energy: 0, allowAbove10: true });
   });
 });

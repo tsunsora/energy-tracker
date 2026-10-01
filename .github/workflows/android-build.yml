@@ -27,6 +27,8 @@ jobs:
           java-version: '21'
       - name: Install dependencies
         run: npm ci
+      - name: Dependency security audit
+        run: npm audit --audit-level=moderate
       - name: Unit tests
         run: npm test
       - name: Install browser
@@ -39,6 +41,9 @@ jobs:
         run: npm run test:offline
       - name: Install Android SDK packages
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"'
+      - name: Native lint and device-test compilation
+        working-directory: android
+        run: bash gradlew :app:lintDebug :app:assembleDebugAndroidTest --no-daemon
       - name: Build development APK
         working-directory: android
         run: bash gradlew assembleDebug --no-daemon

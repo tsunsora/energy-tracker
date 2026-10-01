@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def releaseStore = System.getenv('ENERGY_KEYSTORE_PATH')
+def releaseCredentials = ['ENERGY_KEYSTORE_PASSWORD', 'ENERGY_KEY_ALIAS', 'ENERGY_KEY_PASSWORD']
+if (releaseStore && releaseCredentials.any { !System.getenv(it) }) {
+    throw new GradleException('Set all ENERGY_KEYSTORE signing variables when ENERGY_KEYSTORE_PATH is provided.')
+}
+
 android {
     namespace = "app.vanguard.energy"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +13,8 @@ android {
         applicationId "app.vanguard.energy"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 21
-        versionName "1.2.18"
+        versionCode 22
+        versionName "1.2.19"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +22,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (releaseStore) {
+            distribution {
+                storeFile file(releaseStore)
+                storePassword System.getenv('ENERGY_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ENERGY_KEY_ALIAS')
+                keyPassword System.getenv('ENERGY_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            debuggable false
+            // Preserve the existing sideload signing identity when no custom key is supplied.
+            signingConfig releaseStore ? signingConfigs.distribution : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

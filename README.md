@@ -9,12 +9,13 @@ A simple, offline Android energy tracker for two or four players.
 - Tap the upper half of a player's area to add one energy, or the lower half to subtract one. Subtle chevrons labeled ADD and REMOVE identify the center of each tap area, and controls follow each player's orientation. The **+3** button remains a separate control. Player names are plain labels.
 - Tap the center setup button to choose two or four players and configure energy limits. Opponent-facing seating is always enabled, including for older saves.
 - Hold the REMOVE area for 0.6 seconds to set just that player's energy to zero. Slide away to cancel before the hold completes.
+- Players can tap or hold their own areas simultaneously. Keyboard and screen-reader activation also support single-step adjustments.
 - Under **Allow energy above 10**, enable the switch for any player whose deck needs it. Other players still stop at 10. Extended counters support 0–9,999.
 - Lower a player's energy to 10 or less before switching the normal limit back on; changing a setting never silently deletes energy.
 - Player names are noninteractive labels; tapping them does not open settings or change energy. The app does not vibrate.
 - Player names sit toward the outside edges in four-player mode and at the top-left of each player's view in two-player mode. A subtle +3 button sits flush against the bottom edge. Both follow the player's orientation.
 
-Player preferences save automatically. All four energy counts reset when the Android app is closed and opened again, including when closed with Back from the tracker. Switching apps or locking the screen keeps the current game. In the browser, counts survive reloads in the same tab and reset in a new tab. The Android app is locked to portrait and keeps the display awake while open. The installed web app also requests portrait orientation; a regular browser tab follows the browser's orientation. Setup groups player layout and energy limits, with a scrollable settings area and a fixed Done button for small screens. No account, ads, tracking, or network connection is required.
+Player preferences save automatically. All four energy counts reset when the Android app is closed and opened again, including when closed with Back from the tracker. Switching apps or locking the screen keeps the current game. In the browser, counts survive reloads and history returns in the same tab; fresh navigations and new tabs start a new game, including tabs opened from an existing game. Energy and player preferences save independently, with a warning if either save fails. A web update displays **Update** and **Later** buttons; applying it preserves the current game. The Android app is locked to portrait and keeps the display awake while open. The installed web app also requests portrait orientation; a regular browser tab follows the browser's orientation. Setup groups player layout and energy limits, with a scrollable settings area and a fixed Done button for small screens. No account, ads, tracking, or network connection is required.
 
 The native manifest includes the [Android 16 compatibility setting](https://developer.android.com/about/versions/16/behavior-changes-16) for portrait restrictions on large screens. Device or window-management overrides may still apply; the web layout remains responsive when the OS overrides orientation.
 
@@ -22,7 +23,7 @@ Version 1.2 removes damage, soul, wins, turns, dice, timers, nations, themes, ac
 
 ## Android
 
-Download `energy-tracker.apk` from [GitHub Releases](https://github.com/tsunsora/energy-tracker/releases/latest) and install it on Android 7.0+ with a current Android System WebView. This is a debug-signed APK for sideloading, not a Play Store release. Version 1.2.8 uses the same app ID and signing key as the previous local builds, allowing an update without uninstalling or clearing data. The release includes a SHA-256 checksum.
+Download `energy-tracker.apk` from [GitHub Releases](https://github.com/tsunsora/energy-tracker/releases/latest) and install it on Android 7.0+ with a current Android System WebView. This is a sideloaded APK, not a Play Store release. Version 1.2.19 local builds use release mode with app and WebView debugging disabled, retaining the existing local signing key so updates install without clearing data. The build also generates a SHA-256 checksum.
 
 ```powershell
 npm ci
@@ -38,9 +39,11 @@ npm run android:open
 
 Future published updates must use the same signing key to install over the current release. Keep that key private and backed up. A successful build does not substitute for physical Android device testing.
 
+By default, release builds use the existing `$USERPROFILE/.android/debug.keystore`, originally generated for the earlier sideload builds. The Windows build script refuses to create a replacement key if it is missing. To use an explicitly managed key, set `ENERGY_KEYSTORE_PATH`, `ENERGY_KEYSTORE_PASSWORD`, `ENERGY_KEY_ALIAS`, and `ENERGY_KEY_PASSWORD` in the build environment. Changing the signing identity prevents an in-place update of existing installs. Credentials and keystores must remain outside Git. For a separate development APK, use `npm run android:build:debug`; it writes `energy-tracker-development.apk`.
+
 ## GitHub builds
 
-The Android build workflow runs unit tests, browser tests, and the offline check, then builds an APK on pushes to `main`, pull requests, and manual runs. Its downloadable artifact is a development build signed with the runner's temporary debug key, so use the APK on the Releases page for installed updates. APKs and signing keys are excluded from Git history.
+The Android build workflow runs dependency auditing, unit tests, browser tests, offline/update checks, native lint, and device-test compilation, then builds an APK on pushes to `main`, pull requests, and manual runs. Its downloadable artifact is a development build signed with the runner's temporary debug key, so use the APK on the Releases page for installed updates. APKs and signing keys are excluded from Git history.
 
 ## Browser development and tests
 
@@ -58,6 +61,6 @@ npm run test:offline
 
 Development preview: `http://localhost:5173`. The production browser app supports offline use after its first successful load and service-worker installation over HTTPS or localhost. Android assets are bundled and work offline from first launch.
 
-Tests cover normal and extended limits, independent player settings, +1/+3 adjustments, persistence above 10, legacy-save migration, reset/undo, and small portrait/landscape layouts. The offline test reloads a saved value above 10 and continues charging without a network connection.
+Tests cover normal and extended limits, independent player settings, +1/+3 adjustments, persistence above 10, legacy-save migration, per-player resets, storage failures, fresh tabs, keyboard activation, simultaneous touches, and small portrait/landscape layouts. The production check reloads a saved value above 10 and continues charging offline, then simulates a deployment and verifies update deferral and activation without losing counts. Retired profile actions, global reset, undo history, and profile-form styles have been removed; older saved preferences still migrate.
 
 Unofficial fan project, unaffiliated with Bushiroad. No official card art or logos are included. Fonts use the SIL Open Font License and Lucide icons use the ISC license; notices are bundled under `public/licenses`.

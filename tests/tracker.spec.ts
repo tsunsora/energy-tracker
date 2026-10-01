@@ -12,6 +12,7 @@ test('visible number glyphs stay centered on phone and tablet screens', async ({
     }, past: [] }));
   });
   await page.goto('/');
+  await page.reload(); // Restore the seeded game through this tab's reload path.
   await expect(page.getByRole('article')).toHaveCount(4);
   for (const size of [{ width: 320, height: 568 }, { width: 393, height: 852 }, { width: 768, height: 1024 }]) {
     await page.setViewportSize(size);
@@ -114,14 +115,114 @@ test('moving or cancelling a minus hold leaves energy unchanged', async ({ page 
   await page.waitForTimeout(750);
   await page.mouse.up();
   await expect(zone.locator('.counter-value')).toHaveText('3');
-  const touch = { pointerId: 9, pointerType: 'touch', isPrimary: true, button: 0, clientX: box.x + 20, clientY: box.y + 20 };
-  await minus.dispatchEvent('pointerdown', touch);
-  await minus.dispatchEvent('pointercancel', touch);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ id: 9, x: box.x + 20, y: box.y + 20 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
   await page.waitForTimeout(750);
   await expect(zone.locator('.counter-value')).toHaveText('3');
-  await minus.dispatchEvent('pointerdown', touch);
+  await minus.click({ delay: 800 });
   await expect(zone.locator('.counter-value')).toHaveText('0');
-  await minus.dispatchEvent('pointerup', touch);
+  await cdp.detach();
+});
+
+test('a local-storage failure still saves the current game in session storage', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (this === localStorage) throw new DOMException('Storage full', 'QuotaExceededError');
+      original.call(this, key, value);
+    };
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Charge +3 for Player 2', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('Player settings cannot be saved for the next game.');
+  await page.reload();
+  await expect(page.locator('.counter-value')).toHaveText(['0', '3']);
+});
+
+test('a session-storage failure still saves player preferences and explains count loss', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (this === sessionStorage) throw new DOMException('Storage full', 'QuotaExceededError');
+      original.call(this, key, value);
+    };
+  });
+  await page.goto('/'); await setup(page);
+  await page.getByRole('switch', { name: 'Allow energy above 10 for Player 2', exact: true }).check(); await done(page);
+  await page.getByRole('button', { name: 'Charge +3 for Player 2', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('Energy cannot be saved. Keep the app open to retain your energy.');
+  await page.reload();
+  await expect(page.locator('.counter-value')).toHaveText(['0', '0']);
+  await setup(page);
+  await expect(page.getByRole('switch', { name: 'Allow energy above 10 for Player 2', exact: true })).toBeChecked();
+});
+
+test('a new tab with an opener starts fresh, preserves preferences, and reloads independently', async ({ page }) => {
+  await page.goto('/'); await setup(page);
+  await page.getByRole('button', { name: '4 players', exact: true }).click();
+  await page.getByRole('switch', { name: 'Allow energy above 10 for Player 4', exact: true }).check(); await done(page);
+  await page.getByRole('button', { name: 'Charge +3 for Player 2', exact: true }).click();
+  const popupPromise = page.waitForEvent('popup');
+  await page.evaluate(() => { window.open('/', '_blank'); });
+  const child = await popupPromise;
+  await expect(child.locator('.counter-value')).toHaveText(['0', '0', '0', '0']);
+  await setup(child);
+  await expect(child.getByRole('switch', { name: 'Allow energy above 10 for Player 4', exact: true })).toBeChecked(); await done(child);
+  await child.getByRole('button', { name: 'Charge +3 for Player 1', exact: true }).click();
+  await child.reload();
+  await expect(child.locator('.counter-value')).toHaveText(['3', '0', '0', '0']);
+  await expect(page.locator('.counter-value')).toHaveText(['0', '3', '0', '0']);
+});
+
+test('returning through this tab history keeps its current game', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Charge +3 for Player 2', exact: true }).click();
+  await page.goto('about:blank');
+  await page.goBack();
+  await expect(page.locator('.counter-value')).toHaveText(['0', '3']);
+});
+
+test('keyboard activation adjusts energy exactly once', async ({ page }) => {
+  await page.goto('/');
+  const plus = page.getByRole('button', { name: 'Add 1 energy to Player 2', exact: true });
+  const minus = page.getByRole('button', { name: 'Remove 1 energy from Player 2', exact: true });
+  await plus.focus(); await page.keyboard.press('Space'); await page.keyboard.press('Enter');
+  await expect(page.locator('.counter-value')).toHaveText(['0', '2']);
+  await minus.focus(); await page.keyboard.press('Enter'); await page.keyboard.press('Space');
+  await expect(page.locator('.counter-value')).toHaveText(['0', '0']);
+});
+
+test('simultaneous player touches support independent taps, holds, and cancellation', async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.goto('/');
+  for (const id of [1, 2]) await page.getByRole('button', { name: `Charge +3 for Player ${id}`, exact: true }).click();
+  const cdp = await page.context().newCDPSession(page);
+  const pointsFor = async (action: 'Add' | 'Remove') => Promise.all([1, 2].map(async id => {
+    const box = await page.getByRole('button', { name: `${action} 1 energy ${action === 'Add' ? 'to' : 'from'} Player ${id}`, exact: true }).boundingBox();
+    if (!box) throw new Error('Missing tap area');
+    return { id, x: box.x + box.width * .15, y: box.y + box.height * .35 };
+  }));
+  const plus = await pointsFor('Add');
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [plus[0]] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: plus });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [plus[1]] });
+  await expect(page.locator('.counter-value')).toHaveText(['3', '4']);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(page.locator('.counter-value')).toHaveText(['4', '4']);
+  const minus = await pointsFor('Remove');
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [minus[0]] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: minus });
+  await expect(page.locator('.counter-value')).toHaveText(['0', '0']);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  for (const id of [1, 2]) await page.getByRole('button', { name: `Charge +3 for Player ${id}`, exact: true }).click();
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [minus[0]] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: minus });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [minus[0], { ...minus[1], x: minus[1].x + 30 }] });
+  await expect(page.locator('.counter-value')).toHaveText(['0', '3']);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(page.locator('.counter-value')).toHaveText(['0', '3']);
+  await cdp.detach();
 });
 
 test('only energy controls remain, normal energy stops at 10', async ({ page }) => {

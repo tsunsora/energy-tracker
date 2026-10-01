@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'app.vanguard.energy', appName: 'Vanguard Energy', webDir: 'dist',
-  android: { backgroundColor: '#101217' },
+  android: { backgroundColor: '#101217', webContentsDebuggingEnabled: false },
   plugins: { SystemBars: { insetsHandling: 'native' } }
 };
 export default config;

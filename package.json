@@ -1,7 +1,7 @@
 {
   "name": "vanguard-energy-tracker",
   "private": true,
-  "version": "1.2.18",
+  "version": "1.2.19",
   "type": "module",
   "scripts": {
     "assets": "node scripts/assets.mjs",
@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "test:offline": "node scripts/check-offline.mjs",
     "android:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1",
+    "android:build:debug": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1 -Development",
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android"
   },
@@ -24,6 +25,9 @@
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "overrides": {
+    "xcode": { "uuid": "11.1.1" }
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",
