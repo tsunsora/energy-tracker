@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.activity.viewModels
 import androidx.compose.material3.Text
 import androidx.compose.foundation.background
@@ -24,14 +25,19 @@ class MainActivity : ComponentActivity() {
     private val model: EnergyViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             val session = model.session
             if (session == null) Box(Modifier.fillMaxSize().background(Color(0xff101217)), contentAlignment = Alignment.Center) {
                 Text("Vanguard Energy", color = Color(0xffc9f76f))
             } else {
-                BackHandler(session.setupOpen) { session.showSetup(false) }
+                BackHandler {
+                    if (session.setupOpen) session.showSetup(false) else finish()
+                }
                 EnergyApp(session)
             }
         }

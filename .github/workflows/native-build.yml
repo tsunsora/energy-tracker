@@ -48,7 +48,7 @@ jobs:
             adb shell svc wifi disable
             adb shell svc data disable
             ./gradlew :androidApp:connectedDebugAndroidTest --stacktrace
-            adb pull /sdcard/Android/data/app.vanguard.energy/files/screenshots androidApp/build/screenshots
+            adb pull /sdcard/Pictures/VanguardEnergyTests androidApp/build/screenshots
       - name: Android artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -91,6 +91,7 @@ jobs:
           xcodebuild -project iosApp/VanguardEnergy.xcodeproj -scheme VanguardEnergy -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath iosApp/build/VanguardEnergy.xcarchive CODE_SIGNING_ALLOWED=NO archive
       - name: Smoke test iOS launch
         run: |
+          ./gradlew --stop
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for key,items in d["devices"].items() if "iOS-18-5" in key for x in items if x["name"] == "iPhone 16"))')
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
@@ -98,7 +99,7 @@ jobs:
           xcrun simctl launch "$DEVICE" app.vanguard.energy
           sleep 5
           xcrun simctl io "$DEVICE" screenshot iosApp/build/ios-simulator.png
-          xcrun simctl spawn "$DEVICE" launchctl list | grep app.vanguard.energy
+          xcrun simctl spawn "$DEVICE" launchctl list | awk '$1 ~ /^[0-9]+$/ && /app.vanguard.energy/ { found=1 } END { exit !found }'
       - name: Package iOS outputs
         run: |
           ditto -c -k --keepParent iosApp/build/DerivedData/Build/Products/Debug-iphonesimulator/VanguardEnergy.app iosApp/build/ios-simulator.zip

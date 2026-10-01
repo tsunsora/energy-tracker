@@ -34,8 +34,23 @@ class TrackerUiTest {
     private fun ready() { ui.waitUntil(10_000) { ui.onAllNodesWithTag("setup").fetchSemanticsNodes().isNotEmpty() } }
     private fun screenshot(name: String) {
         val bitmap = instrumentation.uiAutomation.takeScreenshot()
-        val directory = File(context.getExternalFilesDir(null), "screenshots").apply { mkdirs() }
-        File(directory, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            // Shared test images survive the test runner uninstalling the target APK.
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "$name.png")
+                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/VanguardEnergyTests")
+                put(android.provider.MediaStore.Images.Media.IS_PENDING, 1)
+            }
+            val uri = checkNotNull(context.contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values))
+            checkNotNull(context.contentResolver.openOutputStream(uri)).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            values.clear()
+            values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
+            context.contentResolver.update(uri, values, null, null)
+        } else {
+            val directory = File(context.getExternalFilesDir(null), "screenshots").apply { mkdirs() }
+            File(directory, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
         bitmap.recycle()
     }
     @Test fun controlsLimitsAndHoldReset() {
@@ -76,7 +91,8 @@ class TrackerUiTest {
         activity!!.recreate()
         ready()
         ui.onNodeWithTag("energy-0").assertContentDescriptionEquals("Player 1: 2 energy")
-        activity!!.close()
+        instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        ui.waitUntil(5_000) { activity!!.state == androidx.lifecycle.Lifecycle.State.DESTROYED }
         launch()
         ui.onNodeWithTag("energy-0").assertContentDescriptionEquals("Player 1: 0 energy")
     }

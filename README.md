@@ -81,6 +81,8 @@ To install on a physical iPhone or distribute through TestFlight/App Store, choo
 
 Shared tests cover independent limits, overflow protection, per-player reset, hidden counters, orientation overrides, preference-only persistence, malformed/oversized saves, legacy migration, save failures, and cancelled/simultaneous gestures. Android device tests exercise the shared native UI, real WebView import, simultaneous touch input, hold/reset, cancelled movement, activity recreation, and new sessions.
 
+Run device tests on an emulator or disposable test installation: they reset player preferences and replace the installed test app.
+
 The [native build workflow](.github/workflows/native-build.yml) runs shared tests, Android lint and emulator tests, then builds Android and iOS artifacts. CI uses read-only repository permissions and pinned action revisions. The Gradle distribution is checksum verified. Download the `android-development` and `ios-unsigned` artifacts from a successful workflow run; device signing remains local.
 
 ## Project guide

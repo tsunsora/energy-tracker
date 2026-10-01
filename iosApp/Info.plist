@@ -12,6 +12,7 @@
     <key>UILaunchScreen</key><dict><key>UIColorName</key><string>LaunchBackground</string></dict>
     <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
     <key>UIUserInterfaceStyle</key><string>Dark</string>
+    <key>UIRequiresFullScreen</key><true/>
     <key>CADisableMinimumFrameDurationOnPhone</key><true/>
     <key>UIApplicationSupportsIndirectInputEvents</key><true/>
 </dict></plist>
