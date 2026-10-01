@@ -7,5 +7,9 @@
     <key>NSPrivacyAccessedAPITypes</key><array><dict>
         <key>NSPrivacyAccessedAPIType</key><string>NSPrivacyAccessedAPICategoryUserDefaults</string>
         <key>NSPrivacyAccessedAPITypeReasons</key><array><string>CA92.1</string></array>
+    </dict><dict>
+        <!-- Compose/Skia reads bundled font and resource file metadata. -->
+        <key>NSPrivacyAccessedAPIType</key><string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+        <key>NSPrivacyAccessedAPITypeReasons</key><array><string>C617.1</string></array>
     </dict></array>
 </dict></plist>

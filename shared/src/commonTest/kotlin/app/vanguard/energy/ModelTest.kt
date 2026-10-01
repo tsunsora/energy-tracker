@@ -98,6 +98,21 @@ class ModelTest {
         gesture.start(10f, 20f)
         assertTrue(gesture.hold()); assertFalse(gesture.hold()); assertFalse(gesture.release())
     }
+    @Test fun failedImportRemainsPendingAfterSettingsChanges() {
+        val store = MemoryStore()
+        val session = TrackerSession(store)
+        session.migrationUnavailable()
+        val warning = session.saveWarning
+        session.setCount(4)
+        session.setLimit(0, true)
+        session.adjust(0, 15)
+        session.savePreferences()
+        assertEquals(15, session.board.energies[0])
+        assertEquals(4, session.board.preferences.count)
+        assertEquals(warning, session.saveWarning)
+        assertEquals(0, store.writes)
+        assertNull(store.read()) // Android still takes the legacy-import path on reopening.
+    }
     @Test fun slidesAndLeavingCancelTapAndHold() {
         val gesture = EnergyGesture(14f)
         gesture.start(0f, 0f); gesture.move(15f, 0f, true)

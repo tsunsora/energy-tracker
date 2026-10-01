@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -27,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.vanguard.energy.resources.Res
@@ -110,6 +114,10 @@ private fun PlayerZone(player: Player, rotated: Boolean, nameOnRight: Boolean, s
             else -> if (zoneWidth <= 260) .57f else .45f
         }, maxHeight.value * if (maxHeight.value <= 340) .24f else .35f).coerceIn(26f, 240f)
         val chargeHeight = min(52f, maxHeight.value * .20f).coerceAtLeast(32f).dp
+        val counterHeight = with(LocalDensity.current) {
+            // Leave room for each half's chevron and scaled label, plus a gap.
+            (maxHeight / 2 - 26.dp - 14.sp.toDp() - 16.dp).coerceAtLeast(1.dp)
+        }
         Box(Modifier.fillMaxSize().graphicsLayer { rotationZ = if (rotated) 180f else 0f }) {
             Column(Modifier.fillMaxSize()) {
                 EnergyHalf("Add 1 energy to ${player.preference.name}", "ADD", true, player.energy < player.limit, false,
@@ -117,21 +125,29 @@ private fun PlayerZone(player: Player, rotated: Boolean, nameOnRight: Boolean, s
                 EnergyHalf("Remove 1 energy from ${player.preference.name}", "REMOVE", false, player.energy > 0, true,
                     color, session.gestureEpoch, { session.adjust(id, -1) }, { session.reset(id) }, Modifier.weight(1f).fillMaxWidth().testTag("remove-$id"))
             }
-            Text(player.energy.toString(), Modifier.align(Alignment.Center).testTag("energy-$id")
+            BasicText(player.energy.toString(), Modifier.align(Alignment.Center)
+                .widthIn(max = (zoneWidth - 24).coerceAtLeast(1f).dp).heightIn(max = counterHeight).testTag("energy-$id")
                 .clearAndSetSemantics { contentDescription = "${player.preference.name}: ${player.energy} energy"; liveRegion = LiveRegionMode.Polite },
                 style = TextStyle(fontFamily = digits, fontWeight = FontWeight.SemiBold, fontSize = fontSize.sp,
-                    lineHeight = fontSize.sp, color = color, textAlign = TextAlign.Center), maxLines = 1)
-            Text(player.preference.name, Modifier.align(if (nameOnRight) Alignment.TopEnd else Alignment.TopStart)
-                .padding(12.dp).widthIn(max = min(120f, zoneWidth - 24).dp).height(44.dp)
+                    color = color, textAlign = TextAlign.Center), maxLines = 1,
+                autoSize = TextAutoSize.StepBased(minFontSize = 1.sp, maxFontSize = fontSize.sp, stepSize = .5.sp))
+            BasicText(player.preference.name, Modifier.align(if (nameOnRight) Alignment.TopEnd else Alignment.TopStart)
+                .padding(12.dp).widthIn(max = min(120f, (zoneWidth - 24).coerceAtLeast(1f)).dp).height(44.dp)
                 .consumeTouches().padding(6.dp),
-                color = color.copy(alpha = .8f), fontSize = if (zoneWidth <= 260) 12.sp else 16.sp,
-                fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Box(Modifier.align(Alignment.BottomCenter).width(min(180f, zoneWidth - 32).dp).height(chargeHeight)
+                style = MaterialTheme.typography.bodyMedium.copy(color = color.copy(alpha = .8f),
+                    fontWeight = FontWeight.Medium, lineHeight = TextUnit.Unspecified),
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                autoSize = TextAutoSize.StepBased(minFontSize = 1.sp, maxFontSize = if (zoneWidth <= 260) 12.sp else 16.sp, stepSize = .5.sp))
+            Box(Modifier.align(Alignment.BottomCenter).width(min(180f, (zoneWidth - 32).coerceAtLeast(1f)).dp).height(chargeHeight)
                 .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)).background(lerp(Color(0xff151a1b), color, .17f))
                 .border(1.dp, lerp(Color(0xff151a1b), color, .18f), RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
                 .testTag("charge-$id").clickable(enabled = player.energy < player.limit, role = Role.Button) { session.adjust(id, 3) }
                 .semantics { contentDescription = "Charge +3 for ${player.preference.name}" }, contentAlignment = Alignment.Center) {
-                Text("+3", color = color.copy(alpha = if (player.energy < player.limit) .72f else .22f), fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                BasicText("+3", Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = color.copy(alpha = if (player.energy < player.limit) .72f else .22f),
+                        fontWeight = FontWeight.SemiBold, lineHeight = TextUnit.Unspecified), maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 1.sp, maxFontSize = 24.sp, stepSize = .5.sp))
             }
         }
     }
@@ -147,6 +163,17 @@ private fun EnergyHalf(description: String, label: String, up: Boolean, enabled:
     val latestTap by rememberUpdatedState(onTap)
     val latestHold by rememberUpdatedState(onHold)
     val slop = with(LocalDensity.current) { 14.dp.toPx() }
+    val keyGesture = remember { EnergyGesture(0f) }
+    val keyScope = rememberCoroutineScope()
+    var pressedKey by remember { mutableStateOf<Key?>(null) }
+    var keyTimer by remember { mutableStateOf<Job?>(null) }
+    fun cancelKeyGesture() {
+        keyTimer?.cancel()
+        keyTimer = null
+        keyGesture.cancel()
+        pressedKey = null
+    }
+    DisposableEffect(enabled, epoch) { onDispose { cancelKeyGesture() } }
     Box(modifier.semantics {
         role = Role.Button
         contentDescription = description
@@ -154,10 +181,29 @@ private fun EnergyHalf(description: String, label: String, up: Boolean, enabled:
         onClick { if (enabled) latestTap(); enabled }
         if (holdable) onLongClick("Reset energy to zero") { if (enabled) latestHold(); enabled }
     }.onKeyEvent { event ->
-        if (enabled && (event.key == Key.Enter || event.key == Key.Spacebar) && event.type == KeyEventType.KeyUp) {
-            latestTap(); true
-        } else false
-    }.focusable(enabled).pointerInput(enabled, epoch, slop) {
+        if (!enabled || (event.key != Key.Enter && event.key != Key.Spacebar)) false
+        else when (event.type) {
+            KeyEventType.KeyDown -> {
+                // Native key-repeat events must not start additional timers.
+                if (pressedKey == null) {
+                    pressedKey = event.key
+                    keyGesture.start(0f, 0f)
+                    if (holdable) keyTimer = keyScope.launch { delay(600); if (keyGesture.hold()) latestHold() }
+                }
+                true
+            }
+            KeyEventType.KeyUp -> {
+                if (pressedKey == event.key) {
+                    keyTimer?.cancel()
+                    if (keyGesture.release()) latestTap()
+                    pressedKey = null
+                    keyTimer = null
+                }
+                true
+            }
+            else -> false
+        }
+    }.onFocusChanged { if (!it.isFocused) cancelKeyGesture() }.focusable(enabled).pointerInput(enabled, epoch, slop) {
         if (!enabled) return@pointerInput
         coroutineScope {
             val gesture = EnergyGesture(slop)
@@ -194,7 +240,8 @@ private fun EnergyHalf(description: String, label: String, up: Boolean, enabled:
         val tint = lerp(Color(0xff151a1b), color, .48f).copy(alpha = if (enabled) 1f else .5f)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (up) Chevron(tint, true)
-            Text(label, color = tint, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp)
+            Text(label, color = tint, fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.2.sp, maxLines = 1)
             if (!up) Chevron(tint, false)
         }
     }

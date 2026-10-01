@@ -89,6 +89,30 @@ jobs:
       - name: Build unsigned iOS device archive
         run: |
           xcodebuild -project iosApp/VanguardEnergy.xcodeproj -scheme VanguardEnergy -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath iosApp/build/VanguardEnergy.xcarchive CODE_SIGNING_ALLOWED=NO archive
+      - name: Check privacy declarations in the archived app
+        run: |
+          python3 - <<'PY'
+          import pathlib, plistlib, subprocess
+          app = pathlib.Path('iosApp/build/VanguardEnergy.xcarchive/Products/Applications/VanguardEnergy.app')
+          manifest = plistlib.loads((app / 'PrivacyInfo.xcprivacy').read_bytes())
+          reasons = {entry['NSPrivacyAccessedAPIType']: entry['NSPrivacyAccessedAPITypeReasons']
+                     for entry in manifest['NSPrivacyAccessedAPITypes']}
+          imports = {line.split()[-1] for line in subprocess.check_output(
+              ['xcrun', 'nm', '-u', str(app / 'VanguardEnergy')], text=True).splitlines() if line.split()}
+          categories = {
+              'FileTimestamp': {'_stat', '_fstat', '_fstatat', '_lstat'},
+              'SystemBootTime': {'_mach_absolute_time'},
+              'DiskSpace': {'_statfs', '_fstatfs', '_statvfs', '_fstatvfs'},
+              'UserDefaults': {'_OBJC_CLASS_$_NSUserDefaults'},
+          }
+          for category, symbols in categories.items():
+              if imports & symbols:
+                  key = 'NSPrivacyAccessedAPICategory' + category
+                  assert reasons.get(key), f'Missing privacy reason for {category}: {imports & symbols}'
+          assert reasons.get('NSPrivacyAccessedAPICategoryFileTimestamp') == ['C617.1']
+          assert reasons.get('NSPrivacyAccessedAPICategoryUserDefaults') == ['CA92.1']
+          print('Archived privacy manifest covers the linked required-reason APIs.')
+          PY
       - name: Smoke test iOS launch
         run: |
           ./gradlew --stop

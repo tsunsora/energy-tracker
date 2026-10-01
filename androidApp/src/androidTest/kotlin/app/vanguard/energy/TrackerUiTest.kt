@@ -4,6 +4,17 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -109,6 +120,66 @@ class TrackerUiTest {
         ui.waitUntil(5_000) { activity!!.state == androidx.lifecycle.Lifecycle.State.DESTROYED }
         launch()
         ui.onNodeWithTag("energy-0").assertContentDescriptionEquals("Player 1: 0 energy")
+    }
+    @OptIn(ExperimentalTestApi::class)
+    @Test fun keyboardHoldResetsAndFocusLossCancels() {
+        launch()
+        ui.onNodeWithTag("charge-1").performClick()
+        val remove = ui.onNodeWithTag("remove-1")
+        remove.performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        remove.performKeyInput { keyDown(Key.Spacebar) }
+        ui.waitUntil(2_000) {
+            ui.onNodeWithTag("energy-1").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.ContentDescription] == listOf("Player 2: 0 energy")
+        }
+        remove.performKeyInput { keyUp(Key.Spacebar) }
+        ui.onNodeWithTag("energy-1").assertContentDescriptionEquals("Player 2: 0 energy")
+
+        ui.onNodeWithTag("charge-1").performClick()
+        remove.performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        remove.performKeyInput { keyDown(Key.Enter); keyUp(Key.Enter) }
+        ui.onNodeWithTag("energy-1").assertContentDescriptionEquals("Player 2: 2 energy")
+        remove.performKeyInput { keyDown(Key.Spacebar) }
+        ui.onNodeWithTag("add-1").performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        // The hold uses real elapsed time, independent of Compose's test clock.
+        Thread.sleep(750)
+        ui.onNodeWithTag("add-1").performKeyInput { keyUp(Key.Spacebar) }
+        ui.onNodeWithTag("energy-1").assertContentDescriptionEquals("Player 2: 2 energy")
+    }
+    @Test fun largeTextFitsCountersAndChargeButtons() {
+        launch()
+        val store = object : PreferenceStore {
+            override fun read(): String? = null
+            override fun write(value: String) = true
+        }
+        val session = TrackerSession(store).also {
+            it.setCount(4)
+            it.adjust(0, 10)
+            it.adjust(1, 10)
+            it.setLimit(2, true); it.adjust(2, 9999)
+            it.setLimit(3, true); it.adjust(3, 159)
+        }
+        activity!!.onActivity { host ->
+            host.setContent {
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                    Box(Modifier.size(320.dp, 640.dp)) { EnergyApp(session) }
+                }
+            }
+        }
+        ui.waitForIdle()
+        for (id in 0..3) {
+            val counter = ui.onNodeWithTag("energy-$id").fetchSemanticsNode().boundsInRoot
+            for (label in listOf("ADD", "REMOVE")) {
+                val control = ui.onNode(hasText(label) and hasAnyAncestor(hasTestTag("player-$id")), useUnmergedTree = true)
+                    .fetchSemanticsNode().boundsInRoot
+                assertFalse("Player $id counter overlaps $label with large text", counter.overlaps(control))
+            }
+            val layouts = mutableListOf<TextLayoutResult>()
+            ui.onNode(hasText("+3") and hasAnyAncestor(hasTestTag("player-$id")), useUnmergedTree = true)
+                .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { assertTrue(it(layouts)) }
+            assertFalse("Player $id charge label is clipped", layouts.single().hasVisualOverflow)
+        }
+        screenshot("large-text")
     }
     @Test fun importsActualLegacyWebViewPreferences() {
         val latch = CountDownLatch(1)

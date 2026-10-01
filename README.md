@@ -18,7 +18,7 @@ An offline energy tracker for **two or four Cardfight!! Vanguard players**, rewr
 | Hold **REMOVE** for 0.6 seconds | Reset that player to zero; slide away to cancel |
 | Center setup button | Choose two or four players and set individual energy limits |
 
-Controls face each player's side of the table. Players can act simultaneously, including repeated taps while another player holds a control. Player names are inert labels. Keyboard and accessibility actions support energy adjustments and resets. There is no vibration.
+Controls face each player's side of the table. Players can act simultaneously, including repeated taps while another player holds a control. Player names are inert labels. With a control focused, Enter or Space adjusts energy; holding REMOVE for 0.6 seconds resets it. Moving keyboard focus or opening Setup cancels a pending hold. Accessibility actions also support adjustments and resets. There is no vibration. Counters and charge labels fit the available space with large system text settings.
 
 Each counter stops at 10 by default. In **Setup → Allow energy above 10**, enable a player's switch to allow up to 9,999. Lower their energy to 10 before switching it off. Changing settings never silently discards energy.
 
@@ -28,9 +28,9 @@ No account, ads, tracking, or network connection is required. The app bundles it
 
 ## Android
 
-Requires **Android 7.0 (API 24) or newer**. Version **2.0.0 (23)** retains the application ID `app.vanguard.energy`. Local release builds use the original private signing key, allowing an in-place update from earlier sideload releases. Release mode disables debugging and enables code/resource shrinking.
+Requires **Android 7.0 (API 24) or newer**. Version **2.0.1 (24)** retains the application ID `app.vanguard.energy`. Local release builds use the original private signing key, allowing an in-place update from earlier sideload releases. Release mode disables debugging and enables code/resource shrinking.
 
-On the first upgrade, a short-lived, invisible WebView imports validated player preferences from the old app's private local storage. It cannot access the network, files, or native bridges. Old game counts and retired fields are discarded. Fresh installs bypass this import entirely. If import fails, the app warns and retries on the next launch.
+On the first upgrade, a short-lived, invisible WebView imports validated player preferences from the old app's private local storage. It cannot access the network, files, or native bridges. Old game counts and retired fields are discarded. Fresh installs bypass this import entirely. If import fails, the app warns and retries on the next launch. Settings changes during a failed import apply only to the current game, preserving the old preferences for that retry.
 
 Development APKs from GitHub Actions use the runner's temporary key and may not update an installed release. Keep distribution keystores private and backed up. The signing key is never committed or uploaded to Actions.
 
@@ -79,7 +79,7 @@ To install on a physical iPhone or distribute through TestFlight/App Store, choo
 ./gradlew :androidApp:connectedDebugAndroidTest
 ```
 
-Shared tests cover independent limits, overflow protection, per-player reset, hidden counters, orientation overrides, preference-only persistence, malformed/oversized saves, legacy migration, save failures, and cancelled/simultaneous gestures. Android device tests exercise the shared native UI, real WebView import, simultaneous touch input, hold/reset, cancelled movement, activity recreation, and new sessions.
+Shared tests cover independent limits, overflow protection, per-player reset, hidden counters, orientation overrides, preference-only persistence, malformed/oversized saves, legacy migration and pending retries, save failures, and cancelled/simultaneous gestures. Android device tests exercise the shared native UI, real WebView import, simultaneous touch input, touch/keyboard hold/reset, cancelled movement and keyboard focus changes, activity recreation, new sessions, and text fitting at 2× font scaling.
 
 Run device tests on an emulator or disposable test installation: they reset player preferences and replace the installed test app.
 

@@ -115,6 +115,7 @@ class TrackerSession(private val store: PreferenceStore, preferences: Preference
         private set
     var gestureEpoch by mutableStateOf(0)
         private set
+    private var migrationPending = false
 
     private fun update(next: Board) {
         if (next == board) return
@@ -129,10 +130,16 @@ class TrackerSession(private val store: PreferenceStore, preferences: Preference
     fun showSetup(open: Boolean) { cancelGestures(); setupOpen = open }
     fun cancelGestures() { gestureEpoch++ }
     fun savePreferences() {
+        // A native save is also the upgrade-completion marker. Do not replace
+        // unread legacy preferences with this game's temporary defaults.
+        if (migrationPending) return
         val saved = try { store.write(PreferenceCodec.encode(board.preferences)) } catch (_: Exception) { false }
         saveWarning = if (saved) null else "Player settings could not be saved for the next game."
     }
-    fun migrationUnavailable() { saveWarning = "Previous settings could not be read. Reopen the app to retry." }
+    fun migrationUnavailable() {
+        migrationPending = true
+        saveWarning = "Previous settings could not be read. Changes last for this game; reopen to retry."
+    }
 }
 
 /** One pointer per control, with independent state for every player's input. */
