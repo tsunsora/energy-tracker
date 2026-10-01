@@ -1,28 +1,12 @@
 <p align="center">
-  <img src="public/icon.svg" width="88" alt="Vanguard Energy app icon">
+  <img src="assets/icon.svg" width="88" alt="Vanguard Energy app icon">
 </p>
 
 # Vanguard Energy
 
-An offline energy tracker for **two or four Cardfight!! Vanguard players**, built for a shared Android phone. Large tap areas, opponent-facing controls, and a focused portrait layout keep the table moving.
+An offline energy tracker for **two or four Cardfight!! Vanguard players**, rewritten in **Kotlin Multiplatform and Compose Multiplatform** for Android and iOS. Both apps share their tracker UI, energy rules, gesture handling, and preference validation.
 
-[**Download Android APK**](https://github.com/tsunsora/energy-tracker/releases/latest/download/energy-tracker.apk) · [Releases](https://github.com/tsunsora/energy-tracker/releases) · [Report an issue](https://github.com/tsunsora/energy-tracker/issues)
-
-## At a glance
-
-- **Two or four players:** each player's controls face their side of the table.
-- **Quick adjustments:** tap for +1 or −1, use the dedicated +3 button, or hold to clear one counter.
-- **Individual energy limits:** stop at 10 by default; enable up to 9,999 for decks that need more.
-- **Ready for the table:** portrait orientation, an awake display, and no vibration.
-- **Offline from first launch on Android:** no account, ads, or network connection required.
-
-## Install on Android
-
-1. Download `energy-tracker.apk` from the [latest release](https://github.com/tsunsora/energy-tracker/releases/latest).
-2. Open the APK on **Android 7.0 or newer**, with an up-to-date Android System WebView.
-3. Allow installation from your browser or file manager if Android prompts you, then open Vanguard Energy.
-
-The release is a debug-signed APK for sideloading. A SHA-256 checksum is included with each release. Use the release APK for installed updates; development builds from GitHub Actions use a temporary signing key and may not install over it.
+[Android releases](https://github.com/tsunsora/energy-tracker/releases) · [Android and iOS builds](https://github.com/tsunsora/energy-tracker/actions/workflows/native-build.yml) · [Report an issue](https://github.com/tsunsora/energy-tracker/issues)
 
 ## At the table
 
@@ -34,92 +18,89 @@ The release is a debug-signed APK for sideloading. A SHA-256 checksum is include
 | Hold **REMOVE** for 0.6 seconds | Reset that player to zero; slide away to cancel |
 | Center setup button | Choose two or four players and set individual energy limits |
 
-All directions follow the player's orientation. Player names are labels; tapping them does not change energy or open settings.
+Controls face each player's side of the table. Players can act simultaneously, including repeated taps while another player holds a control. Player names are inert labels. Keyboard and accessibility actions support energy adjustments and resets. There is no vibration.
 
-In **Setup → Allow energy above 10**, enable the switch for each player who needs an extended counter. Lower their energy to 10 or less before switching it off. Changing the limit never silently discards energy.
+Each counter stops at 10 by default. In **Setup → Allow energy above 10**, enable a player's switch to allow up to 9,999. Lower their energy to 10 before switching it off. Changing settings never silently discards energy.
 
-### What gets saved?
+Preferences save automatically. Counts stay in memory when switching apps, locking the screen, or recreating an Android activity. A fresh launch resets all four counts, including hidden players. Android Back dismisses Setup, then closes the tracker. Both platforms request portrait orientation and keep the display awake while foregrounded. Setup scrolls while its Done button stays accessible.
 
-Player preferences save automatically. Energy counts follow the current session:
+No account, ads, tracking, or network connection is required. The app bundles its fonts and icons. Android has no Internet permission. The React/Vite/Capacitor implementation, browser service worker, and Node dependency tree have been retired; there is no browser target in this version.
 
-| Where you play | Energy behavior |
-| --- | --- |
-| Android app | All four counters reset when the app closes and opens again, including after exiting with Back |
-| Switching apps or locking the screen | Keeps the current Android game |
-| Browser | Counts survive reloads in the same tab; a new tab starts at zero |
+## Android
 
-The Android app requests portrait orientation and keeps the display awake while open. Device or window-management overrides may still apply. The installed web app also requests portrait; a regular browser tab follows the browser's orientation.
+Requires **Android 7.0 (API 24) or newer**. Version **2.0.0 (23)** retains the application ID `app.vanguard.energy`. Local release builds use the original private signing key, allowing an in-place update from earlier sideload releases. Release mode disables debugging and enables code/resource shrinking.
 
-## Run locally
+On the first upgrade, a short-lived, invisible WebView imports validated player preferences from the old app's private local storage. It cannot access the network, files, or native bridges. Old game counts and retired fields are discarded. Fresh installs bypass this import entirely. If import fails, the app warns and retries on the next launch.
 
-The app uses **React, TypeScript, Vite, and Capacitor**. Install **Node.js 22+**, then:
+Development APKs from GitHub Actions use the runner's temporary key and may not update an installed release. Keep distribution keystores private and backed up. The signing key is never committed or uploaded to Actions.
 
-```sh
-git clone https://github.com/tsunsora/energy-tracker.git
-cd energy-tracker
-npm ci
-npm run dev
-```
+### Build on Windows
 
-Open `http://localhost:5173`. To build and preview the production browser app:
-
-```sh
-npm run build
-npm run preview
-```
-
-The production browser app works offline after its first successful load and service-worker installation over HTTPS or localhost. Android bundles its assets and works offline from the first launch.
-
-## Build for Android
-
-On Windows, install **JDK 21** and **Android SDK 36**, then run:
+Install **JDK 21** and **Android SDK 36**, or use the verified setup helper:
 
 ```powershell
-npm ci
-npm run android:build
+./scripts/setup-android.ps1
+./scripts/build-android.ps1
 ```
 
-The APK is written to `releases/energy-tracker.apk`. The build script uses a local `.tools/jdk` and `.tools/sdk` when present; otherwise, configure `JAVA_HOME` and `ANDROID_HOME` for your installed tools. The optional [setup script](scripts/setup-android.ps1) downloads verified development tools and accepts Android SDK licenses.
+The signed APK and SHA-256 checksum are written to `releases/energy-tracker.apk` and `releases/energy-tracker.apk.sha256`. The scripts use `.tools/jdk` and `.tools/sdk` when available, otherwise `JAVA_HOME` and `ANDROID_HOME`.
 
-To work in Android Studio 2025.2.1 or newer:
+By default, release signing uses the existing `$USERPROFILE/.android/debug.keystore` originally used for sideload distribution. The script refuses to create a replacement. A managed key can be supplied through **all four** environment variables: `ENERGY_KEYSTORE_PATH`, `ENERGY_KEYSTORE_PASSWORD`, `ENERGY_KEY_ALIAS`, and `ENERGY_KEY_PASSWORD`. A different key prevents in-place updates.
+
+For a separate development APK:
+
+```powershell
+./scripts/build-android.ps1 -Development
+```
+
+On macOS/Linux, set the JDK/SDK paths and run `./gradlew :androidApp:assembleDebug`. Open the repository root in an Android Studio version supporting Kotlin 2.3 and AGP 8.13.
+
+## iOS
+
+Requires **iOS 15 or newer**. On a Mac with **Xcode**, **JDK 21**, and **XcodeGen**:
 
 ```sh
-npm run android:sync
-npm run android:open
+brew install xcodegen
+./scripts/build-ios.sh
+open iosApp/VanguardEnergy.xcodeproj
 ```
 
-Published updates must retain the same app ID and signing key to install over an existing release. Keep the signing key private and backed up. Test builds on a physical Android device before release.
+`iosApp/project.yml` is the reproducible Xcode project definition. Xcode builds the shared Kotlin framework through its build phase. The shell helper produces a simulator app and an **unsigned device archive**, under `iosApp/build/`.
+
+To install on a physical iPhone or distribute through TestFlight/App Store, choose your Apple development team and provisioning profile in Xcode, then archive and export with signing. An unsigned `.xcarchive` or simulator `.app` is not an installable iPhone IPA. GitHub's Mac runner compiles both outputs without Apple credentials, launches the simulator app, and captures a screenshot.
 
 ## Checks
 
 ```sh
-npm test
-npx playwright install chromium
-npm run test:e2e
-npm run build
-npm run test:offline
+./gradlew :shared:jvmTest
+./gradlew :androidApp:lintDebug :androidApp:lintRelease
+./gradlew :androidApp:assembleDebugAndroidTest
+# With an emulator or Android device connected:
+./gradlew :androidApp:connectedDebugAndroidTest
 ```
 
-These cover energy limits, player settings, adjustments, persistence, legacy-save migration, and small portrait and landscape layouts. The offline check reloads a saved value above 10 and continues charging without a network connection.
+Shared tests cover independent limits, overflow protection, per-player reset, hidden counters, orientation overrides, preference-only persistence, malformed/oversized saves, legacy migration, save failures, and cancelled/simultaneous gestures. Android device tests exercise the shared native UI, real WebView import, simultaneous touch input, hold/reset, cancelled movement, activity recreation, and new sessions.
 
-The [Android build workflow](.github/workflows/android-build.yml) runs unit, browser, and offline checks before producing a development APK on pushes to `main`, pull requests, and manual runs.
+The [native build workflow](.github/workflows/native-build.yml) runs shared tests, Android lint and emulator tests, then builds Android and iOS artifacts. CI uses read-only repository permissions and pinned action revisions. The Gradle distribution is checksum verified. Download the `android-development` and `ios-unsigned` artifacts from a successful workflow run; device signing remains local.
 
 ## Project guide
 
 | Path | Contents |
 | --- | --- |
-| [`src/`](src/) | Tracker UI, energy rules, persistence, and unit tests |
-| [`tests/`](tests/) | Playwright browser checks |
-| [`android/`](android/) | Native Android project |
-| [`scripts/`](scripts/) | Android setup/build helpers and offline check |
-| [`public/licenses/`](public/licenses/) | Bundled font and icon notices |
+| [`shared/`](shared/) | Kotlin UI, energy model, gestures, preferences, iOS entry point, and shared tests |
+| [`androidApp/`](androidApp/) | Android activity, lifecycle, private storage, upgrade import, icons, and device tests |
+| [`iosApp/`](iosApp/) | Thin SwiftUI host, reproducible Xcode project, app icon, and privacy manifest |
+| [`scripts/`](scripts/) | Native setup/build helpers |
+| [`licenses/`](licenses/) | Bundled font notices |
+
+Kotlin **2.3.21**, Compose Multiplatform **1.10.3**, AGP **8.13.2**, and Gradle **8.14.3** are pinned. The JVM target exists to run shared tests; Android and iOS are the shipping targets.
 
 ## Credits
 
-An unofficial fan project, unaffiliated with Bushiroad. No official card art or logos are included. Bundled fonts use the SIL Open Font License; Lucide icons use the ISC license. See [third-party notices](public/licenses/).
+An unofficial fan project, unaffiliated with Bushiroad. No official card art or logos are included. DM Sans and Barlow Condensed use the SIL Open Font License; see [font notices](licenses/). The app icon and simple control graphics are bundled locally.
 
 ## Visitors
 
 [![Vanguard Energy visitor counter](https://count.getloli.com/@tsunsora-energy-tracker?theme=rule34&padding=8&offset=0&align=top&scale=1&pixelated=1&darkmode=auto)](https://count.getloli.com/)
 
-Powered by [Moe Counter](https://github.com/journey-ad/Moe-Counter). This counts image requests, not unique visitors; GitHub image caching can affect the total.
+Powered by [Moe Counter](https://github.com/journey-ad/Moe-Counter). This counts README image requests, not unique visitors; GitHub image caching can affect the total.

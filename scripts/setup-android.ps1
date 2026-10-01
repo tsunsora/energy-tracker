@@ -24,5 +24,5 @@ $env:ANDROID_HOME = "$toolsRoot\sdk"
 1..30 | ForEach-Object { 'y' } | & "$toolsRoot\sdk\cmdline-tools\latest\bin\sdkmanager.bat" --licenses
 & "$toolsRoot\sdk\cmdline-tools\latest\bin\sdkmanager.bat" 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
 if ($LASTEXITCODE -ne 0) { throw 'Android SDK setup failed' }
-Write-EnergySdkLocation -SdkPath $env:ANDROID_HOME -OutputPath "$workspaceRoot\android\local.properties"
+Write-EnergySdkLocation -SdkPath $env:ANDROID_HOME -OutputPath "$workspaceRoot\local.properties"
 Write-Output 'Android build tools ready.'
